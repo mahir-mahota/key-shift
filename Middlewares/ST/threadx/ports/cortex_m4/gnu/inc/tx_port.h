@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -26,7 +25,7 @@
 /*  PORT SPECIFIC C INFORMATION                            RELEASE        */
 /*                                                                        */
 /*    tx_port.h                                         Cortex-M4/GNU     */
-/*                                                           6.1.10       */
+/*                                                           6.1.12       */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -56,6 +55,12 @@
 /*                                            violation,                  */
 /*                                            fixed predefined macro,     */
 /*                                            resulting in version 6.1.10 */
+/*  04-25-2022      Scott Larson            Modified comments and added   */
+/*                                            volatile to registers,      */
+/*                                            resulting in version 6.1.11 */
+/*  07-29-2022      Scott Larson            Modified comments and         */
+/*                                            described BASEPRI usage,    */
+/*                                            resulting in version 6.1.12 */
 /*                                                                        */
 /**************************************************************************/
 
@@ -143,6 +148,12 @@ typedef unsigned short                          USHORT;
 #define TX_TIMER_THREAD_PRIORITY                0           /* Default timer thread priority    */
 #endif
 
+/* By default, ThreadX for Cortex-M uses the PRIMASK register to enable/disable interrupts.
+If using BASEPRI is desired, define the following two symbols for both c and assembly files:
+TX_PORT_USE_BASEPRI - This tells ThreadX to use BASEPRI instead of PRIMASK.
+TX_PORT_BASEPRI = (priority_mask << (8 - number_priority_bits)) - this defines the maximum priority level to mask.
+Any interrupt with a higher priority than priority_mask will not be masked, thus the interrupt will run.
+*/
 
 /* Define various constants for the ThreadX Cortex-M port.  */
 
@@ -154,14 +165,14 @@ typedef unsigned short                          USHORT;
    For example, if the time source is at the address 0x0a800024 and is 16-bits in size, the clock
    source constants would be:
 
-#define TX_TRACE_TIME_SOURCE                    *((ULONG *) 0x0a800024)
+#define TX_TRACE_TIME_SOURCE                    *((volatile ULONG *) 0x0a800024)
 #define TX_TRACE_TIME_MASK                      0x0000FFFFUL
 
 */
 
 #ifndef TX_MISRA_ENABLE
 #ifndef TX_TRACE_TIME_SOURCE
-#define TX_TRACE_TIME_SOURCE                    *((ULONG *) 0xE0001004)
+#define TX_TRACE_TIME_SOURCE                    *((volatile ULONG *) 0xE0001004)
 #endif
 #else
 ULONG   _tx_misra_time_stamp_get(VOID);
@@ -378,7 +389,7 @@ void _tx_vfp_access(void);
                                                         else                                                                                \
                                                         {                                                                                   \
                                                         ULONG  _tx_fpccr;                                                                   \
-                                                            _tx_fpccr =  *((ULONG *) 0xE000EF34);                                           \
+                                                            _tx_fpccr =  *((volatile ULONG *) 0xE000EF34);                                  \
                                                             _tx_fpccr =  _tx_fpccr & ((ULONG) 0x01);                                        \
                                                             if (_tx_fpccr == ((ULONG) 0x01))                                                \
                                                             {                                                                               \
@@ -582,7 +593,7 @@ __attribute__( ( always_inline ) ) static inline void _tx_thread_system_return_i
 unsigned int interrupt_save;
 
     /* Set PendSV to invoke ThreadX scheduler.  */
-    *((ULONG *) 0xE000ED04) = ((ULONG) 0x10000000);
+    *((volatile ULONG *) 0xE000ED04) = ((ULONG) 0x10000000);
     if (__get_ipsr_value() == 0)
     {
         interrupt_save = __get_interrupt_posture();
@@ -651,7 +662,7 @@ static void _tx_thread_system_return_inline(void)
 unsigned int interrupt_save;
 
     /* Set PendSV to invoke ThreadX scheduler.  */
-    *((ULONG *) 0xE000ED04) = ((ULONG) 0x10000000);
+    *((volatile ULONG *) 0xE000ED04) = ((ULONG) 0x10000000);
     if (_ipsr == 0)
     {
 #ifdef TX_PORT_USE_BASEPRI
@@ -704,7 +715,7 @@ void    tx_thread_fpu_disable(void);
 
 #ifdef TX_THREAD_INIT
 CHAR                            _tx_version_id[] =
-                                    "Copyright (c) Microsoft Corporation. All rights reserved.  *  ThreadX Cortex-M4/GNU Version 6.1.9 *";
+                                    "Copyright (c) 2024 Microsoft Corporation.  *  ThreadX Cortex-M4/GNU Version 6.4.2 *";
 #else
 #ifdef TX_MISRA_ENABLE
 extern  CHAR                    _tx_version_id[100];
