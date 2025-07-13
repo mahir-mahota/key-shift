@@ -2,7 +2,7 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    app_azure_rtos.c
+  * @file    app_eclipse_rtos.c
   * @author  MCD Application Team
   * @brief   azure_rtos application implementation file
   ******************************************************************************
@@ -21,7 +21,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 
-#include "app_azure_rtos.h"
+#include "app_eclipse_rtos.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */

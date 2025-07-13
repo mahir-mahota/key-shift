@@ -2,7 +2,7 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    app_azure_rtos.h
+  * @file    app_eclipse_rtos.h
   * @author  MCD Application Team
   * @brief   azure_rtos application header file
   ******************************************************************************
@@ -20,17 +20,15 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef APP_AZURE_RTOS_H
-#define APP_AZURE_RTOS_H
+#ifndef APP_ECLIPSE_RTOS_H
+#define APP_ECLIPSE_RTOS_H
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "app_azure_rtos_config.h"
-
+#include "app_eclipse_rtos_config.h"
 #include "app_threadx.h"
-
 #include "app_usbx_device.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -66,4 +64,4 @@ extern "C" {
 }
 #endif
 
-#endif /* APP_AZURE_RTOS_H */
+#endif /* APP_ECLIPSE_RTOS_H */

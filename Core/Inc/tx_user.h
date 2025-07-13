@@ -247,4 +247,3 @@
 /*#define TX_SAFETY_CRITICAL*/
 
 #endif
-

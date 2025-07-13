@@ -2,9 +2,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    app_azure_rtos_config.h
+  * @file    app_eclipse_rtos_config.h
   * @author  MCD Application Team
-  * @brief   azure_rtos config header file
+  * @brief   eclipse_rtos config header file
   ******************************************************************************
   * @attention
   *
@@ -20,8 +20,8 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef APP_AZURE_RTOS_CONFIG_H
-#define APP_AZURE_RTOS_CONFIG_H
+#ifndef APP_ECLIPSE_RTOS_CONFIG_H
+#define APP_ECLIPSE_RTOS_CONFIG_H
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -67,4 +67,4 @@ extern "C" {
 }
 #endif
 
-#endif /* APP_AZURE_RTOS_CONFIG_H */
+#endif /* APP_ECLIPSE_RTOS_CONFIG_H */
