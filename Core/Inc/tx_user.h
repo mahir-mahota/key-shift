@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -24,7 +23,7 @@
 /*  PORT SPECIFIC C INFORMATION                            RELEASE        */
 /*                                                                        */
 /*    tx_user.h                                           PORTABLE C      */
-/*                                                           6.0          */
+/*                                                           6.3.0        */
 /*                                                                        */
 /*  AUTHOR                                                                */
 /*                                                                        */
@@ -42,7 +41,28 @@
 /*                                                                        */
 /*    DATE              NAME                      DESCRIPTION             */
 /*                                                                        */
-/*  05-19-2020     William E. Lamie         Initial Version 6.0           */
+/*  05-19-2020      William E. Lamie        Initial Version 6.0           */
+/*  09-30-2020      Yuxin Zhou              Modified comment(s),          */
+/*                                            resulting in version 6.1    */
+/*  03-02-2021      Scott Larson            Modified comment(s),          */
+/*                                            added option to remove      */
+/*                                            FileX pointer,              */
+/*                                            resulting in version 6.1.5  */
+/*  06-02-2021      Scott Larson            Added options for multiple    */
+/*                                            block pool search & delay,  */
+/*                                            resulting in version 6.1.7  */
+/*  10-15-2021      Yuxin Zhou              Modified comment(s), added    */
+/*                                            user-configurable symbol    */
+/*                                            TX_TIMER_TICKS_PER_SECOND   */
+/*                                            resulting in version 6.1.9  */
+/*  04-25-2022      Wenhui Xie              Modified comment(s),          */
+/*                                            optimized the definition of */
+/*                                            TX_TIMER_TICKS_PER_SECOND,  */
+/*                                            resulting in version 6.1.11 */
+/*  10-31-2023      Xiuwen Cai              Modified comment(s),          */
+/*                                            added option for random     */
+/*                                            number stack filling,       */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 
@@ -71,6 +91,7 @@
         TX_DISABLE_PREEMPTION_THRESHOLD
         TX_DISABLE_REDUNDANT_CLEARING
         TX_DISABLE_NOTIFY_CALLBACKS
+        TX_NO_FILEX_POINTER
         TX_NOT_INTERRUPTABLE
         TX_TIMER_PROCESS_IN_ISR
 
@@ -84,12 +105,32 @@
 /* Override various options with default values already assigned in tx_port.h. Please also refer
    to tx_port.h for descriptions on each of these options.  */
 
-/*#define TX_MAX_PRIORITIES                32*/
-/*#define TX_THREAD_USER_EXTENSION                ????*/
-/*#define TX_TIMER_THREAD_STACK_SIZE                1024*/
-/*#define TX_TIMER_THREAD_PRIORITY                0*/
+/*
+#define TX_MAX_PRIORITIES                       32
+#define TX_MINIMUM_STACK                        ????
+#define TX_THREAD_USER_EXTENSION                ????
+#define TX_TIMER_THREAD_STACK_SIZE              ????
+#define TX_TIMER_THREAD_PRIORITY                ????
+*/
 
-/*#define TX_MINIMUM_STACK                200*/
+/* Define the common timer tick reference for use by other middleware components. The default
+   value is 10ms (i.e. 100 ticks, defined in tx_api.h), but may be replaced by a port-specific
+   version in tx_port.h or here.
+   Note: the actual hardware timer value may need to be changed (usually in tx_initialize_low_level).  */
+
+/*
+#define TX_TIMER_TICKS_PER_SECOND       (100UL)
+*/
+
+/* Determine if there is a FileX pointer in the thread control block.
+   By default, the pointer is there for legacy/backwards compatibility.
+   The pointer must also be there for applications using FileX.
+   Define this to save space in the thread control block.
+*/
+
+/*
+#define TX_NO_FILEX_POINTER
+*/
 
 /* Determine if timer expirations (application timers, timeouts, and tx_thread_sleep calls
    should be processed within the a system timer thread or directly in the timer ISR.
@@ -97,20 +138,26 @@
    processing is done directly from the timer ISR, thereby eliminating the timer thread control
    block, stack, and context switching to activate it.  */
 
-/*#define TX_TIMER_PROCESS_IN_ISR*/
+/*
+#define TX_TIMER_PROCESS_IN_ISR
+*/
 
 /* Determine if in-line timer reactivation should be used within the timer expiration processing.
    By default, this is disabled and a function call is used. When the following is defined,
    reactivating is performed in-line resulting in faster timer processing but slightly larger
    code size.  */
 
-/*#define TX_REACTIVATE_INLINE*/
+/*
+#define TX_REACTIVATE_INLINE
+*/
 
 /* Determine is stack filling is enabled. By default, ThreadX stack filling is enabled,
    which places an 0xEF pattern in each byte of each thread's stack.  This is used by
    debuggers with ThreadX-awareness and by the ThreadX run-time stack checking feature.  */
 
-/*#define TX_DISABLE_STACK_FILLING*/
+/*
+#define TX_DISABLE_STACK_FILLING
+*/
 
 /* Determine whether or not stack checking is enabled. By default, ThreadX stack checking is
    disabled. When the following is defined, ThreadX thread stack checking is enabled.  If stack
@@ -118,7 +165,17 @@
    define is negated, thereby forcing the stack fill which is necessary for the stack checking
    logic.  */
 
-/*#define TX_ENABLE_STACK_CHECKING*/
+/*
+#define TX_ENABLE_STACK_CHECKING
+*/
+
+/* Determine if random number is used for stack filling. By default, ThreadX uses a fixed
+   pattern for stack filling. When the following is defined, ThreadX uses a random number
+   for stack filling. This is effective only when TX_ENABLE_STACK_CHECKING is defined.  */ 
+
+/*
+#define TX_ENABLE_RANDOM_NUMBER_STACK_FILLING
+*/
 
 /* Determine if preemption-threshold should be disabled. By default, preemption-threshold is
    enabled. If the application does not use preemption-threshold, it may be disabled to reduce
@@ -130,13 +187,15 @@
    the .bss section prior to ThreadX running, the define can be used to eliminate unnecessary
    clearing of ThreadX global variables.  */
 
-/*#define TX_DISABLE_REDUNDANT_CLEARING*/
+/*
+#define TX_DISABLE_REDUNDANT_CLEARING
+*/
 
 /* Determine if no timer processing is required. This option will help eliminate the timer
    processing when not needed. The user will also have to comment out the call to
    tx_timer_interrupt, which is typically made from assembly language in
    tx_initialize_low_level. Note: if TX_NO_TIMER is used, the define TX_TIMER_PROCESS_IN_ISR
-   must also be used.  */
+   must also be used and tx_timer_initialize must be removed from ThreadX library.  */
 
 /*
 #define TX_NO_TIMER
@@ -155,95 +214,94 @@
    code in-line. This results in a larger image, but improves the performance of the thread
    resume and suspend services.  */
 
-/*#define TX_INLINE_THREAD_RESUME_SUSPEND*/
+/*
+#define TX_INLINE_THREAD_RESUME_SUSPEND
+*/
+
 
 /* Determine if the internal ThreadX code is non-interruptable. This results in smaller code
    size and less processing overhead, but increases the interrupt lockout time.  */
 
-/*#define TX_NOT_INTERRUPTABLE*/
+/*
+#define TX_NOT_INTERRUPTABLE
+*/
+
 
 /* Determine if the trace event logging code should be enabled. This causes slight increases in
    code size and overhead, but provides the ability to generate system trace information which
    is available for viewing in TraceX.  */
 
-/*#define TX_ENABLE_EVENT_TRACE*/
+/*
+#define TX_ENABLE_EVENT_TRACE
+*/
+
 
 /* Determine if block pool performance gathering is required by the application. When the following is
    defined, ThreadX gathers various block pool performance information. */
 
-/*#define TX_BLOCK_POOL_ENABLE_PERFORMANCE_INFO*/
+/*
+#define TX_BLOCK_POOL_ENABLE_PERFORMANCE_INFO
+*/
 
 /* Determine if byte pool performance gathering is required by the application. When the following is
    defined, ThreadX gathers various byte pool performance information. */
 
-/*#define TX_BYTE_POOL_ENABLE_PERFORMANCE_INFO*/
+/*
+#define TX_BYTE_POOL_ENABLE_PERFORMANCE_INFO
+*/
 
 /* Determine if event flags performance gathering is required by the application. When the following is
    defined, ThreadX gathers various event flags performance information. */
 
-/*#define TX_EVENT_FLAGS_ENABLE_PERFORMANCE_INFO*/
+/*
+#define TX_EVENT_FLAGS_ENABLE_PERFORMANCE_INFO
+*/
 
 /* Determine if mutex performance gathering is required by the application. When the following is
    defined, ThreadX gathers various mutex performance information. */
 
-/*#define TX_MUTEX_ENABLE_PERFORMANCE_INFO*/
+/*
+#define TX_MUTEX_ENABLE_PERFORMANCE_INFO
+*/
 
 /* Determine if queue performance gathering is required by the application. When the following is
    defined, ThreadX gathers various queue performance information. */
 
-/*#define TX_QUEUE_ENABLE_PERFORMANCE_INFO*/
+/*
+#define TX_QUEUE_ENABLE_PERFORMANCE_INFO
+*/
 
 /* Determine if semaphore performance gathering is required by the application. When the following is
    defined, ThreadX gathers various semaphore performance information. */
 
-/*#define TX_SEMAPHORE_ENABLE_PERFORMANCE_INFO*/
+/*
+#define TX_SEMAPHORE_ENABLE_PERFORMANCE_INFO
+*/
 
 /* Determine if thread performance gathering is required by the application. When the following is
    defined, ThreadX gathers various thread performance information. */
 
-/*#define TX_THREAD_ENABLE_PERFORMANCE_INFO*/
+/*
+#define TX_THREAD_ENABLE_PERFORMANCE_INFO
+*/
 
 /* Determine if timer performance gathering is required by the application. When the following is
    defined, ThreadX gathers various timer performance information. */
 
-/*#define TX_TIMER_ENABLE_PERFORMANCE_INFO*/
+/*
+#define TX_TIMER_ENABLE_PERFORMANCE_INFO
+*/
 
-/* Define if the execution change notify is enabled. */
+/*  Override options for byte pool searches of multiple blocks. */
 
-/*#define TX_ENABLE_EXECUTION_CHANGE_NOTIFY*/
+/*
+#define TX_BYTE_POOL_MULTIPLE_BLOCK_SEARCH    20
+*/
 
-/* Define the get system state macro. */
+/*  Override options for byte pool search delay to avoid thrashing. */
 
-/*#define TX_THREAD_GET_SYSTEM_STATE() _tx_thread_system_state */
-
-/* Define the check for whether or not to call the
-    _tx_thread_system_return function (TX_THREAD_SYSTEM_RETURN_CHECK(c)). */
-
-/*#define #define TX_THREAD_SYSTEM_RETURN_CHECK (c)  ((ULONG) _tx_thread_preempt_disable)*/
-
-/* Define the common timer tick reference for use by other middleware components. */
-
-/*#define TX_TIMER_TICKS_PER_SECOND                100*/
-
-/* Determinate if the basic alignment type is defined. */
-
-/*#define ALIGN_TYPE_DEFINED*/
-
-/* Define basic alignment type used in block and byte pool operations. */
-
-/*#define ALIGN_TYPE  ULONG*/
-
-/* Define the TX_MEMSET macro to the standard library function. */
-
-/*#define TX_MEMSET  memset((a),(b),(c))*/
-
-#ifdef __IAR_SYSTEMS_ASM__
-/* Define if the IAR library is supported. */
-/*#define TX_ENABLE_IAR_LIBRARY_SUPPORT*/
-#endif
-
-/* Define if the safety critical configuration is enabled. */
-
-/*#define TX_SAFETY_CRITICAL*/
+/*
+#define TX_BYTE_POOL_DELAY_VALUE              3
+*/
 
 #endif

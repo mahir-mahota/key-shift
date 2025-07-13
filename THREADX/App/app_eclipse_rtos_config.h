@@ -1,5 +1,4 @@
 
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file    app_eclipse_rtos_config.h
@@ -17,7 +16,6 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef APP_ECLIPSE_RTOS_CONFIG_H
@@ -29,39 +27,19 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 
 /* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
-
-/* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
 /* define the size of static threadX byte memory pools */
 #define TX_APP_MEM_POOL_SIZE                     1024
-
 #define UX_DEVICE_APP_MEM_POOL_SIZE              16*1024
 
-/* USER CODE BEGIN EC */
-
-/* USER CODE END EC */
-
 /* Exported macro ------------------------------------------------------------*/
-/* USER CODE BEGIN EM */
-
-/* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-/* USER CODE BEGIN EFP */
-
-/* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
 
 #ifdef __cplusplus
 }
