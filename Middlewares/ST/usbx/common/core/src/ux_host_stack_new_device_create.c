@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_host_stack_new_device_create                    PORTABLE C      */
-/*                                                           6.1.10       */
+/*                                                           6.1.12       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -106,6 +105,10 @@
 /*                                            added standalone support,   */
 /*                                            reset device power source,  */
 /*                                            resulting in version 6.1.10 */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            freed shared device config  */
+/*                                            descriptor after enum scan, */
+/*                                            resulting in version 6.1.12 */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_host_stack_new_device_create(UX_HCD *hcd, UX_DEVICE *device_owner,
@@ -276,6 +279,15 @@ UX_ENDPOINT         *control_endpoint;
         {
 
             status =  _ux_host_stack_class_interface_scan(device);
+
+        }
+
+        /* Check if there is unnecessary resource to free.  */
+        if (device -> ux_device_packed_configuration &&
+            device -> ux_device_packed_configuration_keep_count == 0)
+        {
+            _ux_utility_memory_free(device -> ux_device_packed_configuration);
+            device -> ux_device_packed_configuration = UX_NULL;
         }
 
         /* If trace is enabled, register this object.  */

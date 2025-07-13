@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_device_class_audio_control_request              PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.1.12       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -67,6 +66,10 @@
 /*  05-19-2020     Chaoqiong Xiao           Initial Version 6.0           */
 /*  09-30-2020     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            resulting in version 6.1    */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed parameter/variable    */
+/*                                            names conflict C++ keyword, */
+/*                                            resulting in version 6.1.12 */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_class_audio_control_request(UX_SLAVE_CLASS_COMMAND *command)
@@ -74,15 +77,15 @@ UINT  _ux_device_class_audio_control_request(UX_SLAVE_CLASS_COMMAND *command)
 
 UX_SLAVE_TRANSFER             *transfer_request;
 UX_SLAVE_DEVICE               *device;
-UX_SLAVE_CLASS                *class;
+UX_SLAVE_CLASS                *class_ptr;
 UX_DEVICE_CLASS_AUDIO         *audio;
 
 
     /* Get the class container.  */
-    class =  command -> ux_slave_class_command_class_ptr;
+    class_ptr =  command -> ux_slave_class_command_class_ptr;
 
     /* Get the audio instance from this class container.  */
-    audio =  (UX_DEVICE_CLASS_AUDIO *) class -> ux_slave_class_instance;
+    audio =  (UX_DEVICE_CLASS_AUDIO *) class_ptr -> ux_slave_class_instance;
 
     /* Get the pointer to the device.  */
     device =  &_ux_system_slave -> ux_system_slave_device;

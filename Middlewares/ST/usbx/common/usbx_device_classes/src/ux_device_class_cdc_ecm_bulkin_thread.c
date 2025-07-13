@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -28,12 +27,14 @@
 #include "ux_device_class_cdc_ecm.h"
 #include "ux_device_stack.h"
 
+
+#if !defined(UX_DEVICE_STANDALONE)
 /**************************************************************************/ 
 /*                                                                        */ 
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_device_class_cdc_ecm_bulkin_thread              PORTABLE C      */ 
-/*                                                           6.1.10       */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -57,8 +58,8 @@
 /*                                                                        */ 
 /*    _ux_device_stack_transfer_request     Request transfer              */ 
 /*    _ux_utility_event_flags_get           Get event flags               */
-/*    _ux_utility_mutex_on                  Take mutex                    */
-/*    _ux_utility_mutex_off                 Free mutex                    */
+/*    _ux_device_mutex_on                   Take mutex                    */
+/*    _ux_device_mutex_off                  Free mutex                    */
 /*                                                                        */ 
 /*  CALLED BY                                                             */ 
 /*                                                                        */ 
@@ -78,26 +79,40 @@
 /*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            refined macros names,       */
 /*                                            resulting in version 6.1.10 */
+/*  04-25-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed standalone compile,   */
+/*                                            resulting in version 6.1.11 */
+/*  10-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            used NX API to copy data,   */
+/*                                            resulting in version 6.2.0  */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added zero copy support,    */
+/*                                            added a new mode to manage  */
+/*                                            endpoint buffer in classes, */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 VOID  _ux_device_class_cdc_ecm_bulkin_thread(ULONG cdc_ecm_class)
 {
 
-UX_SLAVE_CLASS                  *class;
+UX_SLAVE_CLASS                  *class_ptr;
 UX_SLAVE_CLASS_CDC_ECM          *cdc_ecm;
 UX_SLAVE_DEVICE                 *device;
 UX_SLAVE_TRANSFER               *transfer_request;
 UINT                            status;
 ULONG                           actual_flags;
 NX_PACKET                       *current_packet;
-UCHAR                           *packet_header;
 ULONG                           transfer_length;
+ULONG                           copied;
+#if (UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1) && defined(UX_DEVICE_CLASS_CDC_ECM_ZERO_COPY) && !defined(NX_DISABLE_PACKET_CHAIN)
+NX_PACKET                       *packet;
+#endif
 
     /* Cast properly the cdc_ecm instance.  */
-    UX_THREAD_EXTENSION_PTR_GET(class, UX_SLAVE_CLASS, cdc_ecm_class)
+    UX_THREAD_EXTENSION_PTR_GET(class_ptr, UX_SLAVE_CLASS, cdc_ecm_class)
     
     /* Get the cdc_ecm instance from this class container.  */
-    cdc_ecm =  (UX_SLAVE_CLASS_CDC_ECM *) class -> ux_slave_class_instance;
+    cdc_ecm =  (UX_SLAVE_CLASS_CDC_ECM *) class_ptr -> ux_slave_class_instance;
     
     /* Get the pointer to the device.  */
     device =  &_ux_system_slave -> ux_system_slave_device;
@@ -128,7 +143,7 @@ ULONG                           transfer_length;
                 {
 
                     /* Ensure no other threads are modifying the xmit queue.  */
-                    _ux_utility_mutex_on(&cdc_ecm -> ux_slave_class_cdc_ecm_mutex);
+                    _ux_device_mutex_on(&cdc_ecm -> ux_slave_class_cdc_ecm_mutex);
 
                     /* Get the current packet in the list.  */
                     current_packet =  cdc_ecm -> ux_slave_class_cdc_ecm_xmit_queue;
@@ -137,21 +152,64 @@ ULONG                           transfer_length;
                     cdc_ecm -> ux_slave_class_cdc_ecm_xmit_queue =  current_packet -> nx_packet_queue_next;
                 
                     /* Free Mutex resource.  */
-                    _ux_utility_mutex_off(&cdc_ecm -> ux_slave_class_cdc_ecm_mutex);
+                    _ux_device_mutex_off(&cdc_ecm -> ux_slave_class_cdc_ecm_mutex);
                     
                     /* If the link is down no need to rearm a packet. */
                     if (cdc_ecm -> ux_slave_class_cdc_ecm_link_state == UX_DEVICE_CLASS_CDC_ECM_LINK_STATE_UP)
                     {
-                
-                        /* Load the address of the current packet header at the physical header.  */
-                        packet_header =  current_packet -> nx_packet_prepend_ptr;
+#if (UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1) && defined(UX_DEVICE_CLASS_CDC_ECM_ZERO_COPY)
 
-                        /* Can the packet fit in the transfer requests data buffer?  */
-                        if (current_packet -> nx_packet_length <= UX_SLAVE_REQUEST_DATA_MAX_LENGTH)
+                        /* Default to success.  */
+                        status = UX_SUCCESS;
+
+#ifndef NX_DISABLE_PACKET_CHAIN
+
+                        /* Check if packet is chained, allocate a new packet to fill the total data.  */
+                        if (current_packet -> nx_packet_next)
                         {
 
-                            /* Copy the packet in the transfer descriptor buffer.  */
-                            _ux_utility_memory_copy(transfer_request -> ux_slave_transfer_request_data_pointer, packet_header, current_packet -> nx_packet_length); /* Use case of memcpy is verified. */
+                            /* Check if collection of chained data can fit in one packet.  */
+                            if (current_packet -> nx_packet_length >
+                                current_packet -> nx_packet_pool_owner -> nx_packet_pool_payload_size)
+                                status = UX_TRANSFER_BUFFER_OVERFLOW;
+                            else
+                            {
+
+                                /* Allocate a new packet for chain data collection.  */
+                                status = nx_packet_allocate(cdc_ecm -> ux_slave_class_cdc_ecm_packet_pool, &packet, 
+                                            NX_RECEIVE_PACKET, UX_MS_TO_TICK(UX_DEVICE_CLASS_CDC_ECM_PACKET_POOL_WAIT));
+                                if (status == UX_SUCCESS)
+                                {
+
+                                    /* Copy the packet to the buffer.  */
+                                    status = nx_packet_data_extract_offset(current_packet, 0,
+                                            packet -> nx_packet_prepend_ptr,
+                                            current_packet -> nx_packet_length, &copied);
+                                    if (status == NX_SUCCESS)
+                                    {
+                                        packet -> nx_packet_length = current_packet -> nx_packet_length;
+
+                                        /* Release the chained packet.  */
+                                        nx_packet_transmit_release(current_packet);
+
+                                        /* Use copied packet instead.  */
+                                        current_packet = packet;
+                                    }
+                                }
+                            }
+
+
+                            /* Can not copy/buffer issue.  */
+                            if (status != UX_SUCCESS)
+                                status = UX_TRANSFER_BUFFER_OVERFLOW;
+
+                        }
+#endif
+                        if (status == UX_SUCCESS)
+                        {
+
+                            /* Set the transfer request data pointer to the packet buffer.  */
+                            transfer_request -> ux_slave_transfer_request_data_pointer = current_packet -> nx_packet_prepend_ptr;
 
                             /* Calculate the transfer length.  */
                             transfer_length =  current_packet -> nx_packet_length;
@@ -160,7 +218,43 @@ ULONG                           transfer_length;
                             UX_TRACE_IN_LINE_INSERT(UX_TRACE_DEVICE_CLASS_CDC_ECM_PACKET_TRANSMIT, cdc_ecm, 0, 0, 0, UX_TRACE_DEVICE_CLASS_EVENTS, 0, 0)
 
                             /* Send the request to the device controller.  */
-                            status =  _ux_device_stack_transfer_request(transfer_request, transfer_length, UX_DEVICE_CLASS_CDC_ECM_ETHERNET_PACKET_SIZE);
+                            status =  _ux_device_stack_transfer_request(transfer_request, transfer_length, transfer_length + 1);
+                        }
+
+                        /* Check error code. */
+                        if (status != UX_SUCCESS)
+                        {
+
+                            /* Is this not a transfer abort? (this is expected to happen)  */
+                            if (status != UX_TRANSFER_BUS_RESET)
+                            {
+
+                                /* Error trap. */
+                                _ux_system_error_handler(UX_SYSTEM_LEVEL_THREAD, UX_SYSTEM_CONTEXT_CLASS, status);
+                            }
+                        }
+#else
+
+                        /* Can the packet fit in the transfer requests data buffer?  */
+                        if (current_packet -> nx_packet_length <= UX_DEVICE_CLASS_CDC_ECM_BULKIN_BUFFER_SIZE)
+                        {
+
+                            /* Copy the packet in the transfer descriptor buffer.  */
+                            status = nx_packet_data_extract_offset(current_packet, 0,
+                                    transfer_request -> ux_slave_transfer_request_data_pointer,
+                                    current_packet -> nx_packet_length, &copied);
+                            if (status == UX_SUCCESS)
+                            {
+
+                                /* Calculate the transfer length.  */
+                                transfer_length =  current_packet -> nx_packet_length;
+                                
+                                /* If trace is enabled, insert this event into the trace buffer.  */
+                                UX_TRACE_IN_LINE_INSERT(UX_TRACE_DEVICE_CLASS_CDC_ECM_PACKET_TRANSMIT, cdc_ecm, 0, 0, 0, UX_TRACE_DEVICE_CLASS_EVENTS, 0, 0)
+
+                                /* Send the request to the device controller.  */
+                                status =  _ux_device_stack_transfer_request(transfer_request, transfer_length, UX_DEVICE_CLASS_CDC_ECM_BULKIN_BUFFER_SIZE + 1);
+                            }
 
                             /* Check error code. */
                             if (status != UX_SUCCESS)
@@ -183,6 +277,7 @@ ULONG                           transfer_length;
                             /* Report error to application.  */
                             _ux_system_error_handler(UX_SYSTEM_LEVEL_THREAD, UX_SYSTEM_CONTEXT_CLASS, UX_TRANSFER_BUFFER_OVERFLOW);
                         }
+#endif
                     }
 
                     /* Free the packet that was just sent.  First do some housekeeping.  */
@@ -197,12 +292,12 @@ ULONG                           transfer_length;
             {
 
                 /* We need to ensure nobody is adding to the queue, so get the mutex protection. */
-                _ux_utility_mutex_on(&cdc_ecm -> ux_slave_class_cdc_ecm_mutex);
+                _ux_device_mutex_on(&cdc_ecm -> ux_slave_class_cdc_ecm_mutex);
 
                 /* Since we got the mutex, we know no one is trying to modify the queue; we also know
                    no one can start modifying the queue since the link state is down, so we can just 
                    release the mutex.  */
-                _ux_utility_mutex_off(&cdc_ecm -> ux_slave_class_cdc_ecm_mutex);
+                _ux_device_mutex_off(&cdc_ecm -> ux_slave_class_cdc_ecm_mutex);
 
                 /* We get here when the link is down. All packets pending must be freed.  */
                 while (cdc_ecm -> ux_slave_class_cdc_ecm_xmit_queue != UX_NULL)
@@ -236,3 +331,4 @@ ULONG                           transfer_length;
         _ux_device_thread_suspend(&cdc_ecm -> ux_slave_class_cdc_ecm_bulkin_thread);
     }
 }
+#endif

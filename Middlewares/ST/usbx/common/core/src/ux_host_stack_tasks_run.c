@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -44,7 +43,7 @@ static inline VOID _ux_host_stack_pending_transfers_run(VOID);
 /*  FUNCTION                                                 RELEASE      */
 /*                                                                        */
 /*    _ux_host_stack_tasks_run                              PORTABLE C    */
-/*                                                             6.1.10     */
+/*                                                             6.3.0      */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -100,6 +99,19 @@ static inline VOID _ux_host_stack_pending_transfers_run(VOID);
 /*    DATE              NAME                      DESCRIPTION             */
 /*                                                                        */
 /*  01-31-2022     Chaoqiong Xiao           Initial Version 6.1.10        */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added standalone hub,       */
+/*                                            used shared descriptor in   */
+/*                                            device instance for enum,   */
+/*                                            resulting in version 6.1.12 */
+/*  10-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            improved internal logic,    */
+/*                                            fixed activation issue on   */
+/*                                            no class linked interfaces, */
+/*                                            resulting in version 6.2.0  */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            improved enum transfer,     */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 UINT _ux_host_stack_tasks_run(VOID)
@@ -190,8 +202,8 @@ static inline VOID _ux_host_stack_enum_address_sent(UX_DEVICE *device)
 {
 
     /* Address (request wValue) applied to device.  */
-    device -> ux_device_address =
-            device -> ux_device_enum_trans -> ux_transfer_request_value;
+    device -> ux_device_address = device -> ux_device_control_endpoint.
+                ux_endpoint_transfer_request.ux_transfer_request_value & 0x7F;
     device -> ux_device_state = UX_DEVICE_ADDRESSED;
 
     /* Unlock enumeration.  */
@@ -311,6 +323,14 @@ static inline VOID _ux_host_stack_device_enumerated(UX_DEVICE *device)
             UX_DEVICE_HCD_GET(device), UX_DEVICE_PARENT_GET(device),
             UX_DEVICE_PORT_LOCATION_GET(device), 0);
 
+    /* Check if there is unnecessary resource to free.  */
+    if (device -> ux_device_packed_configuration &&
+        device -> ux_device_packed_configuration_keep_count == 0)
+    {
+        _ux_utility_memory_free(device -> ux_device_packed_configuration);
+        device -> ux_device_packed_configuration = UX_NULL;
+    }
+
     /* Reset enumeration state.  */
     device -> ux_device_enum_state = UX_STATE_IDLE;
 
@@ -363,7 +383,12 @@ UX_INTERFACE    *interface_inst;
                 device -> ux_device_class :
                 device -> ux_device_enum_inst.interface -> ux_interface_class;
     command -> ux_host_class_command_request = UX_HOST_CLASS_COMMAND_ACTIVATE_WAIT;
-    status = command -> ux_host_class_command_class_ptr -> ux_host_class_entry_function(command);
+
+    /* If there is no class linked, just next state.  */
+    if (command -> ux_host_class_command_class_ptr != UX_NULL)
+        status = command -> ux_host_class_command_class_ptr -> ux_host_class_entry_function(command);
+    else
+        status = UX_STATE_NEXT;
 
     /* No wait command or ready for next state.  */
     if (status == UX_FUNCTION_NOT_SUPPORTED ||
@@ -422,6 +447,7 @@ UX_TRANSFER             *trans;
 UX_CONFIGURATION        *configuration;
 UX_HOST_CLASS_COMMAND   class_command;
 UCHAR                   *buffer;
+INT                     immediate_state = UX_TRUE;
 
     /* Check if the device enumeration should be processed.  */
     if ((device -> ux_device_flags & UX_DEVICE_FLAG_ENUM) == 0)
@@ -444,14 +470,17 @@ UCHAR                   *buffer;
     }
     UX_RESTORE
 
-    while (1)
+    while (immediate_state)
     {
         switch (device -> ux_device_enum_state)
         {
         case UX_STATE_RESET:
+
+            /* Reset retry counts.  */
+            device -> ux_device_enum_retry = UX_RH_ENUMERATION_RETRY;
+
             device -> ux_device_enum_state = UX_HOST_STACK_ENUM_PORT_ENABLE;
             device -> ux_device_enum_next_state = UX_HOST_STACK_ENUM_PORT_ENABLE;
-            device -> ux_device_enum_retry = UX_RH_ENUMERATION_RETRY;
             device -> ux_device_enum_port_status = UX_PS_CCS;
 
             /* Fall through.  */
@@ -460,19 +489,25 @@ UCHAR                   *buffer;
             /* Lock enumeration any way.  */
             _ux_system_host -> ux_system_host_enum_lock = device;
 
-            /* For device connected to roohub, we may need port enable (OHCI).  */
 #if UX_MAX_DEVICES > 1
             if (UX_DEVICE_PARENT_IS_HUB(device))
-#endif
             {
-                status = _ux_host_stack_rh_port_enable(device);
-                if (status == UX_PORT_INDEX_UNKNOWN)
-                {
 
-                    /* No retry, enumeration fail.  */
-                    device -> ux_device_enum_state = UX_HOST_STACK_ENUM_FAIL;
-                    continue;
-                }
+                /* Issue a port reset on hub side.  */
+                device -> ux_device_flags |= UX_DEVICE_FLAG_RESET;
+                device -> ux_device_enum_state = UX_HOST_STACK_ENUM_HUB_OPERATION_WAIT;
+                return;
+            }
+#endif
+
+            /* For device connected to roohub, we may need port enable (OHCI).  */
+            status = _ux_host_stack_rh_port_enable(device);
+            if (status == UX_PORT_INDEX_UNKNOWN)
+            {
+
+                /* No retry, enumeration fail.  */
+                device -> ux_device_enum_state = UX_HOST_STACK_ENUM_FAIL;
+                continue;
             }
 
             /* Wait a while after port connection.  */
@@ -483,14 +518,14 @@ UCHAR                   *buffer;
                         UX_MS_TO_TICK_NON_ZERO(UX_RH_ENUMERATION_RETRY_DELAY);
             continue;
 
-        case UX_HOST_STACK_ENUM_PORT_RESET:
-
 #if UX_MAX_DEVICES > 1
-            if (UX_DEVICE_PARENT_IS_HUB(device))
-            {
-                /* NOTE: need hub support.  */
-            }
+        case UX_HOST_STACK_ENUM_HUB_OPERATION_WAIT:
+
+            /* Keep waiting, state is changed in hub tasks.  */
+            return;
 #endif
+
+        case UX_HOST_STACK_ENUM_PORT_RESET:
 
             /* Reset may blocking, wait the reset done.  */
             /* Fall through.  */
@@ -530,12 +565,6 @@ UCHAR                   *buffer;
                     UX_DEVICE_HCD_GET(device) ->
                     ux_hcd_address[(device -> ux_device_address-1) >> 3] &=
                         (UCHAR)(1u << ((device -> ux_device_address-1) & 7u));
-                }
-#endif
-#if UX_MAX_DEVICES > 1
-                if (UX_DEVICE_PARENT_IS_HUB(device))
-                {
-                    /* NOTE: need hub support.  */
                 }
 #endif
 
@@ -598,7 +627,7 @@ UCHAR                   *buffer;
         case UX_HOST_STACK_ENUM_DEVICE_ADDR_SENT:
 
             /* Transfer error check.  */
-            trans = device -> ux_device_enum_trans;
+            trans = &device -> ux_device_control_endpoint.ux_endpoint_transfer_request;
             if (trans -> ux_transfer_request_completion_code != UX_SUCCESS)
             {
                 device -> ux_device_enum_state = UX_HOST_STACK_ENUM_RETRY;
@@ -632,7 +661,7 @@ UCHAR                   *buffer;
         case UX_HOST_STACK_ENUM_DEVICE_DESCR_PARSE:
 
             /* Transfer error check.  */
-            trans = device -> ux_device_enum_trans;
+            trans = &device -> ux_device_control_endpoint.ux_endpoint_transfer_request;
             buffer = trans -> ux_transfer_request_data_pointer;
             if (UX_HOST_STACK_ENUM_TRANS_ERROR(trans))
             {
@@ -680,6 +709,7 @@ UCHAR                   *buffer;
                 trans -> ux_transfer_request_requested_length = UX_DEVICE_DESCRIPTOR_LENGTH;
 
                 /* Issue GetDescriptor(Device) again and parse it.  */
+                device -> ux_device_enum_trans = trans;
                 UX_TRANSFER_STATE_RESET(trans);
                 device -> ux_device_enum_state = UX_HOST_STACK_ENUM_TRANS_WAIT;
                 device -> ux_device_enum_next_state = UX_HOST_STACK_ENUM_DEVICE_DESCR_PARSE;
@@ -717,7 +747,7 @@ UCHAR                   *buffer;
         case UX_HOST_STACK_ENUM_CONFIG_DESCR_PARSE:
 
             /* Transfer error check.  */
-            trans = device -> ux_device_enum_trans;
+            trans = &device -> ux_device_control_endpoint.ux_endpoint_transfer_request;
             buffer = trans -> ux_transfer_request_data_pointer;
             if (UX_HOST_STACK_ENUM_TRANS_ERROR(trans))
             {
@@ -765,6 +795,7 @@ UCHAR                   *buffer;
                     configuration -> ux_configuration_descriptor.wTotalLength;
 
                 /* Start transfer again.  */
+                device -> ux_device_enum_trans = trans;
                 UX_TRANSFER_STATE_RESET(device -> ux_device_enum_trans);
                 device -> ux_device_enum_state = UX_HOST_STACK_ENUM_TRANS_WAIT;
                 device -> ux_device_enum_next_state = UX_HOST_STACK_ENUM_CONFIG_DESCR_PARSE;
@@ -839,7 +870,7 @@ UCHAR                   *buffer;
             continue;
 
         case UX_HOST_STACK_ENUM_CONFIG_ACTIVATE:
-            trans = device -> ux_device_enum_trans;
+            trans = &device -> ux_device_control_endpoint.ux_endpoint_transfer_request;
             if (UX_HOST_STACK_ENUM_TRANS_ERROR(trans))
             {
                 device -> ux_device_enum_state = UX_HOST_STACK_ENUM_RETRY;
@@ -895,12 +926,17 @@ UCHAR                   *buffer;
                 class_command.ux_host_class_command_class_ptr =
                                     device -> ux_device_enum_inst.interface -> ux_interface_class;
             }
-            status = class_command.ux_host_class_command_class_ptr ->
-                                ux_host_class_entry_function(&class_command);
-            if (status != UX_SUCCESS)
+
+            /* If there class linked, start activation.  */
+            if (class_command.ux_host_class_command_class_ptr != UX_NULL)
             {
-                device -> ux_device_enum_state = UX_HOST_STACK_ENUM_RETRY;
-                continue;
+                status = class_command.ux_host_class_command_class_ptr ->
+                                    ux_host_class_entry_function(&class_command);
+                if (status != UX_SUCCESS)
+                {
+                    device -> ux_device_enum_state = UX_HOST_STACK_ENUM_RETRY;
+                    continue;
+                }
             }
 
             /* Class activate execute wait.  */
@@ -922,11 +958,13 @@ UCHAR                   *buffer;
         case UX_HOST_STACK_ENUM_TRANS_WAIT:
 
             /* Poll transfer task.  */
-            status = _ux_host_stack_transfer_run(device -> ux_device_enum_trans);
+            trans = device -> ux_device_enum_trans;
+            status = _ux_host_stack_transfer_run(trans);
 
             /* Transfer done - next state.  */
             if (status == UX_STATE_NEXT || status == UX_STATE_IDLE)
             {
+                device -> ux_device_enum_trans = UX_NULL;
                 device -> ux_device_enum_state = device -> ux_device_enum_next_state;
                 continue;
             }
@@ -936,6 +974,17 @@ UCHAR                   *buffer;
             {
 
                 /* No retry, fail.  */
+                if (trans -> ux_transfer_request_data_pointer)
+                {
+                    _ux_utility_memory_free(trans -> ux_transfer_request_data_pointer);
+                    trans -> ux_transfer_request_data_pointer = UX_NULL;
+                }
+                if (device -> ux_device_enum_next_state == UX_HOST_STACK_ENUM_CONFIG_DESCR_PARSE)
+                {
+                    _ux_utility_memory_free(device -> ux_device_enum_inst.ptr);
+                    device -> ux_device_enum_inst.ptr = UX_NULL;
+                }
+                device -> ux_device_enum_trans = UX_NULL;
                 device -> ux_device_enum_state = UX_HOST_STACK_ENUM_FAIL;
                 continue;
             }
@@ -943,6 +992,17 @@ UCHAR                   *buffer;
             {
 
                 /* Error, retry.  */
+                if (trans -> ux_transfer_request_data_pointer)
+                {
+                    _ux_utility_memory_free(trans -> ux_transfer_request_data_pointer);
+                    trans -> ux_transfer_request_data_pointer = UX_NULL;
+                }
+                if (device -> ux_device_enum_next_state == UX_HOST_STACK_ENUM_CONFIG_DESCR_PARSE)
+                {
+                    _ux_utility_memory_free(device -> ux_device_enum_inst.ptr);
+                    device -> ux_device_enum_inst.ptr = UX_NULL;
+                }
+                device -> ux_device_enum_trans = UX_NULL;
                 device -> ux_device_enum_state = UX_HOST_STACK_ENUM_RETRY;
                 continue;
             }
@@ -989,6 +1049,14 @@ UCHAR                   *buffer;
             {
                 device -> ux_device_enum_retry --;
 
+                /* Check if there is unnecessary resource to free.  */
+                if (device -> ux_device_packed_configuration &&
+                    device -> ux_device_packed_configuration_keep_count == 0)
+                {
+                    _ux_utility_memory_free(device -> ux_device_packed_configuration);
+                    device -> ux_device_packed_configuration = UX_NULL;
+                }
+
                 /* Start from port enable delay.  */
                 device -> ux_device_enum_next_state = UX_HOST_STACK_ENUM_PORT_RESET;
                 device -> ux_device_enum_state = UX_HOST_STACK_ENUM_WAIT;
@@ -1033,8 +1101,11 @@ UCHAR                   *buffer;
             device -> ux_device_enum_state = UX_STATE_RESET;
         }
 
-        /* Run once anyway.  */
-        break;
+        /* Invalid unhandled state.  */
+        _ux_system_error_handler(UX_SYSTEM_LEVEL_THREAD, UX_SYSTEM_CONTEXT_HOST_STACK, UX_INVALID_STATE);
+
+        /* Break the immediate state loop.  */
+        immediate_state = UX_FALSE;
     }
 }
 

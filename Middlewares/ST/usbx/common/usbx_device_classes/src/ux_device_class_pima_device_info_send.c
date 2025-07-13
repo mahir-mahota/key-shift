@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -31,7 +30,8 @@
 
 /* Basic buffer length check: larger than DeviceInfo with all string and array 0.  */
 #if UX_DEVICE_CLASS_PIMA_TRANSFER_BUFFER_LENGTH < 35
-#error UX_DEVICE_CLASS_PIMA_TRANSFER_BUFFER_LENGTH too small
+/* #error UX_DEVICE_CLASS_PIMA_TRANSFER_BUFFER_LENGTH too small  */
+/* Build option checked runtime by UX_ASSERT  */
 #endif
 
 /**************************************************************************/
@@ -39,7 +39,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_device_class_pima_device_info_send              PORTABLE C      */
-/*                                                           6.1.10       */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -79,6 +79,13 @@
 /*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            added sanity checks,        */
 /*                                            resulting in version 6.1.10 */
+/*  04-25-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            internal clean up,          */
+/*                                            resulting in version 6.1.11 */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            checked compiling options   */
+/*                                            by runtime UX_ASSERT,       */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_class_pima_device_info_send(UX_SLAVE_CLASS_PIMA *pima)
@@ -91,6 +98,8 @@ UCHAR                   *device_info_pointer;
 ULONG                   array_field_counter;
 USHORT                  *array_pointer;
 
+    /* Build option check.  */
+    UX_ASSERT(UX_DEVICE_CLASS_PIMA_TRANSFER_BUFFER_LENGTH >= 35);
 
     /* If trace is enabled, insert this event into the trace buffer.  */
     UX_TRACE_IN_LINE_INSERT(UX_TRACE_DEVICE_CLASS_PIMA_DEVICE_INFO_SEND, pima, 0, 0, 0, UX_TRACE_DEVICE_CLASS_EVENTS, 0, 0)
@@ -113,9 +122,6 @@ USHORT                  *array_pointer;
     _ux_utility_long_put(device_info + UX_DEVICE_CLASS_PIMA_DATA_HEADER_TRANSACTION_ID,
                             pima -> ux_device_class_pima_transaction_id);
 
-    /* Allocate the device info pointer to the beginning of the dynamic device info field.  */
-    device_info_pointer = device_info + UX_DEVICE_CLASS_PIMA_DEVICE_INFO_VENDOR_EXTENSION_DESC;
-
     /* Fill in the standard version field.  */
     _ux_utility_short_put(device_info + UX_DEVICE_CLASS_PIMA_DEVICE_INFO_STANDARD_VERSION,
                             UX_DEVICE_CLASS_PIMA_STANDARD_VERSION);
@@ -130,7 +136,7 @@ USHORT                  *array_pointer;
 
     /* Validate buffer space available.  */
     UX_ASSERT(UX_DEVICE_CLASS_PIMA_TRANSFER_BUFFER_LENGTH >
-                ((ULONG)(device_info_pointer - device_info) +
+                (UX_DEVICE_CLASS_PIMA_DEVICE_INFO_VENDOR_EXTENSION_DESC +
                  _ux_utility_string_length_get(_ux_device_class_pima_vendor_extension_descriptor) * 2 + 1));
 
     /* Fill in the vendor extension description.  */

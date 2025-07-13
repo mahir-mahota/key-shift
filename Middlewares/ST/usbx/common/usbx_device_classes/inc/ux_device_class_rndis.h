@@ -1,43 +1,42 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ *
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
-/**                                                                       */ 
-/** USBX Component                                                        */ 
+/**                                                                       */
+/** USBX Component                                                        */
 /**                                                                       */
 /**   RNDIS Class                                                         */
 /**                                                                       */
 /**************************************************************************/
 /**************************************************************************/
 
-/**************************************************************************/ 
-/*                                                                        */ 
-/*  COMPONENT DEFINITION                                   RELEASE        */ 
-/*                                                                        */ 
-/*    ux_device_class_rndis.h                             PORTABLE C      */ 
-/*                                                           6.1.8        */
+/**************************************************************************/
+/*                                                                        */
+/*  COMPONENT DEFINITION                                   RELEASE        */
+/*                                                                        */
+/*    ux_device_class_rndis.h                             PORTABLE C      */
+/*                                                           6.x          */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
 /*                                                                        */
 /*  DESCRIPTION                                                           */
-/*                                                                        */ 
-/*    This file defines the equivalences for the USBX Device Class RNDIS  */ 
-/*    component.                                                          */ 
-/*                                                                        */ 
-/*  RELEASE HISTORY                                                       */ 
-/*                                                                        */ 
-/*    DATE              NAME                      DESCRIPTION             */ 
-/*                                                                        */ 
+/*                                                                        */
+/*    This file defines the equivalences for the USBX Device Class RNDIS  */
+/*    component.                                                          */
+/*                                                                        */
+/*  RELEASE HISTORY                                                       */
+/*                                                                        */
+/*    DATE              NAME                      DESCRIPTION             */
+/*                                                                        */
 /*  05-19-2020     Chaoqiong Xiao           Initial Version 6.0           */
 /*  09-30-2020     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            used UX prefix to refer to  */
@@ -49,24 +48,87 @@
 /*                                            added extern "C" keyword    */
 /*                                            for compatibility with C++, */
 /*                                            resulting in version 6.1.8  */
+/*  04-25-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed standalone compile,   */
+/*                                            resulting in version 6.1.11 */
+/*  10-31-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added wait and length DEFs, */
+/*                                            resulting in version 6.2.0  */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added zero copy support,    */
+/*                                            added a new mode to manage  */
+/*                                            endpoint buffer in classes, */
+/*                                            improved error checking,    */
+/*                                            resulting in version 6.3.0  */
+/*  xx-xx-xxxx     Mohamed ayed             Modified comment(s),          */
+/*                                            added rndis deinit function,*/
+/*                                            remove extra spaces,        */
+/*                                            resulting in version 6.x    */
 /*                                                                        */
 /**************************************************************************/
 
 #ifndef UX_DEVICE_CLASS_RNDIS_H
 #define UX_DEVICE_CLASS_RNDIS_H
 
-/* Determine if a C++ compiler is being used.  If so, ensure that standard 
-   C is used to process the API information.  */ 
+/* Determine if a C++ compiler is being used.  If so, ensure that standard
+   C is used to process the API information.  */
 
-#ifdef   __cplusplus 
+#ifdef   __cplusplus
 
-/* Yes, C++ compiler is present.  Use standard C.  */ 
-extern   "C" { 
+/* Yes, C++ compiler is present.  Use standard C.  */
+extern   "C" {
 
-#endif  
+#endif
 
+
+/* Option: defined, it enables zero copy support (works if HID owns endpoint buffer).
+    Enabled, it requires that the NX packet pool is in cache safe area, and buffer max size is
+    larger than UX_DEVICE_CLASS_RNDIS_MAX_PACKET_TRANSFER_SIZE (1600).
+ */
+/* #define UX_DEVICE_CLASS_RNDIS_ZERO_COPY  */
+
+
+/* Bulk out endpoint buffer size (UX_DEVICE_CLASS_RNDIS_MAX_PACKET_TRANSFER_SIZE).  */
+#if (UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1) && defined(UX_DEVICE_CLASS_RNDIS_ZERO_COPY)
+#define UX_DEVICE_CLASS_RNDIS_BULKOUT_BUFFER_SIZE                       0
+#else
+#define UX_DEVICE_CLASS_RNDIS_BULKOUT_BUFFER_SIZE                       UX_DEVICE_CLASS_RNDIS_MAX_PACKET_TRANSFER_SIZE
+#endif
+
+/* Bulk in endpoint buffer size (UX_DEVICE_CLASS_RNDIS_MAX_PACKET_TRANSFER_SIZE).  */
+#if (UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1) && defined(UX_DEVICE_CLASS_RNDIS_ZERO_COPY)
+#define UX_DEVICE_CLASS_RNDIS_BULKIN_BUFFER_SIZE                        0
+#else
+#define UX_DEVICE_CLASS_RNDIS_BULKIN_BUFFER_SIZE                        UX_DEVICE_CLASS_RNDIS_MAX_PACKET_TRANSFER_SIZE
+#endif
+
+/* Interrupt in endpoint buffer size (UX_DEVICE_CLASS_RNDIS_INTERRUPT_RESPONSE_LENGTH).  */
+#define UX_DEVICE_CLASS_RNDIS_INTERRUPTIN_BUFFER_SIZE                   UX_DEVICE_CLASS_RNDIS_INTERRUPT_RESPONSE_LENGTH
+
+
+#if !defined(UX_DEVICE_STANDALONE)
 #include "nx_api.h"
 #include "ux_network_driver.h"
+#else
+
+/* Assume NX definitions for compiling.  */
+#define NX_PACKET                                               VOID*
+#define NX_IP                                                   VOID*
+/*
+UINT  _ux_network_driver_deactivate(VOID *ux_instance, VOID *ux_network_handle);
+VOID  _ux_network_driver_link_up(VOID *ux_network_handle);
+VOID  _ux_network_driver_link_down(VOID *ux_network_handle);
+*/
+#ifndef _ux_network_driver_deactivate
+#define _ux_network_driver_deactivate(a,b)                      do {} while(0)
+#endif
+#ifndef _ux_network_driver_link_up
+#define _ux_network_driver_link_up(a)                           do {} while(0)
+#endif
+#ifndef _ux_network_driver_link_down
+#define _ux_network_driver_link_down(a)                         do {} while(0)
+#endif
+#endif
 
 /* Define generic RNDIS equivalences.  */
 #define UX_DEVICE_CLASS_RNDIS_CLASS_COMMUNICATION_CONTROL                       0x02
@@ -83,9 +145,9 @@ extern   "C" {
 #define UX_DEVICE_CLASS_RNDIS_ETHERNET_IP                                       0x0800
 #define UX_DEVICE_CLASS_RNDIS_ETHERNET_ARP                                      0x0806
 #define UX_DEVICE_CLASS_RNDIS_ETHERNET_RARP                                     0x8035
-#define UX_DEVICE_CLASS_RNDIS_ETHERNET_PACKET_SIZE                              1536    
+#define UX_DEVICE_CLASS_RNDIS_ETHERNET_PACKET_SIZE                              1536
 #define UX_DEVICE_CLASS_RNDIS_NX_ALIGN_PADDING                                  2
-#define UX_DEVICE_CLASS_RNDIS_NX_PKPOOL_ENTRIES                                 8  
+#define UX_DEVICE_CLASS_RNDIS_NX_PKPOOL_ENTRIES                                 8
 
 #define UX_DEVICE_CLASS_RNDIS_NX_PACKET_SIZE                                    sizeof(NX_PACKET)
 
@@ -113,10 +175,10 @@ extern   "C" {
 #define UX_DEVICE_CLASS_RNDIS_NX_ETHERNET_POOL_ALLOCSIZE                        (UX_DEVICE_CLASS_RNDIS_NX_PKPOOL_ENTRIES * UX_DEVICE_CLASS_RNDIS_NX_BUFF_SIZE + 32)
 
 #define UX_DEVICE_CLASS_RNDIS_ETHERNET_SIZE                                     14
-#define UX_DEVICE_CLASS_RNDIS_NODE_ID_LENGTH                                    6  
-#define UX_DEVICE_CLASS_RNDIS_VENDOR_DESCRIPTION_MAX_LENGTH                     64  
+#define UX_DEVICE_CLASS_RNDIS_NODE_ID_LENGTH                                    6
+#define UX_DEVICE_CLASS_RNDIS_VENDOR_DESCRIPTION_MAX_LENGTH                     64
 #define UX_DEVICE_CLASS_RNDIS_MAC_OPTIONS                                       8
-#define UX_DEVICE_CLASS_RNDIS_PACKET_HEADER_MSG                                 1 
+#define UX_DEVICE_CLASS_RNDIS_PACKET_HEADER_MSG                                 1
 
 #define UX_DEVICE_CLASS_RNDIS_OID_SUPPORTED_LIST_LENGTH                         30
 
@@ -451,7 +513,11 @@ extern   "C" {
 
 /* Define timeout packet allocation value.  */
 #ifndef UX_DEVICE_CLASS_RNDIS_PACKET_POOL_WAIT
-#define UX_DEVICE_CLASS_RNDIS_PACKET_POOL_WAIT                                  10  
+#define UX_DEVICE_CLASS_RNDIS_PACKET_POOL_WAIT                                  10
+#endif
+
+#ifndef UX_DEVICE_CLASS_RNDIS_PACKET_POOL_INST_WAIT
+#define UX_DEVICE_CLASS_RNDIS_PACKET_POOL_INST_WAIT                             100
 #endif
 
 /* Calculate response buffer length.  */
@@ -472,7 +538,7 @@ extern   "C" {
 
 /* Ensure maximum-sized RNDIS response can fit in the control endpoint's transfer buffer.  */
 #if UX_DEVICE_CLASS_RNDIS_MAX_CONTROL_RESPONSE_LENGTH > UX_SLAVE_REQUEST_CONTROL_MAX_LENGTH
-#error "Error: the maximum-sized RNDIS response cannot fit inside the control endpoint's data buffer. Increase UX_SLAVE_REQUEST_CONTROL_MAX_LENGTH."
+/* Checked in _initialize().  */
 #endif
 
 /* Define Slave RNDIS Class Calling Parameter structure */
@@ -490,7 +556,7 @@ typedef struct UX_SLAVE_CLASS_RNDIS_PARAMETER_STRUCT
     NX_IP                   *ux_slave_class_rndis_parameter_nx_ip;
     ULONG                   ux_slave_class_rndis_parameter_nx_ip_address;
     ULONG                   ux_slave_class_rndis_parameter_nx_ip_network_mask;
-    
+
 } UX_SLAVE_CLASS_RNDIS_PARAMETER;
 
 /* Define RNDIS Class structure.  */
@@ -503,6 +569,9 @@ typedef struct UX_SLAVE_CLASS_RNDIS_STRUCT
     UX_SLAVE_ENDPOINT                       *ux_slave_class_rndis_interrupt_endpoint;
     UX_SLAVE_ENDPOINT                       *ux_slave_class_rndis_bulkin_endpoint;
     UX_SLAVE_ENDPOINT                       *ux_slave_class_rndis_bulkout_endpoint;
+#if UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1
+    UCHAR                                   *ux_device_class_rndis_endpoint_buffer;
+#endif
     UCHAR                                   ux_slave_class_rndis_response[UX_DEVICE_CLASS_RNDIS_MAX_CONTROL_RESPONSE_LENGTH];
     ULONG                                   ux_slave_class_rndis_response_length;
     ULONG                                   ux_slave_class_rndis_state;
@@ -518,40 +587,62 @@ typedef struct UX_SLAVE_CLASS_RNDIS_STRUCT
     ULONG                                   ux_slave_class_rndis_statistics_rcv_error_alignment;
     ULONG                                   ux_slave_class_rndis_statistics_xmit_one_collision;
     ULONG                                   ux_slave_class_rndis_statistics_xmit_more_collisions;
-    UX_EVENT_FLAGS_GROUP                    ux_slave_class_rndis_event_flags_group;
     UCHAR                                   ux_slave_class_rndis_local_node_id[UX_DEVICE_CLASS_RNDIS_NODE_ID_LENGTH];
     UCHAR                                   ux_slave_class_rndis_remote_node_id[UX_DEVICE_CLASS_RNDIS_NODE_ID_LENGTH];
-    NX_IP                                   *ux_slave_class_rndis_nx_ip;
     ULONG                                   ux_slave_class_rndis_nx_ip_address;
     ULONG                                   ux_slave_class_rndis_nx_ip_network_mask;
+
+#if !defined(UX_DEVICE_STANDALONE)
+    NX_IP                                   *ux_slave_class_rndis_nx_ip;
     NX_INTERFACE                            *ux_slave_class_rndis_nx_interface;
     NX_PACKET                               *ux_slave_class_rndis_xmit_queue;
     NX_PACKET                               *ux_slave_class_rndis_receive_queue;
-    UCHAR                                   *ux_slave_class_rndis_pool_memory;
-    NX_PACKET_POOL                          ux_slave_class_rndis_packet_pool;
+    NX_PACKET_POOL                          *ux_slave_class_rndis_packet_pool;
+#endif
+
+#if !defined(UX_DEVICE_STANDALONE)
+    UX_EVENT_FLAGS_GROUP                    ux_slave_class_rndis_event_flags_group;
     UX_THREAD                               ux_slave_class_rndis_interrupt_thread;
     UX_THREAD                               ux_slave_class_rndis_bulkin_thread;
     UX_THREAD                               ux_slave_class_rndis_bulkout_thread;
+    UX_MUTEX                                ux_slave_class_rndis_mutex;
     UCHAR                                   *ux_slave_class_rndis_interrupt_thread_stack;
     UCHAR                                   *ux_slave_class_rndis_bulkin_thread_stack;
     UCHAR                                   *ux_slave_class_rndis_bulkout_thread_stack;
+#endif
+
     ULONG                                   ux_slave_class_rndis_link_state;
-    UX_MUTEX                                ux_slave_class_rndis_mutex;
     VOID                                    *ux_slave_class_rndis_network_handle;
-    
+
 } UX_SLAVE_CLASS_RNDIS;
+
+/* Define RNDIS endpoint buffer settings (when RNDIS owns buffer).  */
+#if (UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1) && defined(UX_DEVICE_CLASS_RNDIS_ZERO_COPY)
+#define UX_DEVICE_CLASS_RNDIS_ENDPOINT_BUFFER_SIZE_CALC_OVERFLOW 0 /* only one buffer, no calculation  */
+#else
+#define UX_DEVICE_CLASS_RNDIS_ENDPOINT_BUFFER_SIZE_CALC_OVERFLOW \
+    (UX_OVERFLOW_CHECK_ADD_ULONG(UX_DEVICE_CLASS_RNDIS_BULKOUT_BUFFER_SIZE,     \
+                                 UX_DEVICE_CLASS_RNDIS_BULKIN_BUFFER_SIZE) ||   \
+     UX_OVERFLOW_CHECK_ADD_ULONG(UX_DEVICE_CLASS_RNDIS_BULKOUT_BUFFER_SIZE +    \
+                                 UX_DEVICE_CLASS_RNDIS_BULKIN_BUFFER_SIZE,      \
+                                 UX_DEVICE_CLASS_RNDIS_INTERRUPTIN_BUFFER_SIZE))
+#endif
+#define UX_DEVICE_CLASS_RNDIS_ENDPOINT_BUFFER_SIZE          (UX_DEVICE_CLASS_RNDIS_BULKOUT_BUFFER_SIZE + UX_DEVICE_CLASS_RNDIS_BULKIN_BUFFER_SIZE + UX_DEVICE_CLASS_RNDIS_INTERRUPTIN_BUFFER_SIZE)
+#define UX_DEVICE_CLASS_RNDIS_BULKOUT_BUFFER(rndis)         ((rndis)->ux_device_class_rndis_endpoint_buffer)
+#define UX_DEVICE_CLASS_RNDIS_BULKIN_BUFFER(rndis)          (UX_DEVICE_CLASS_RNDIS_BULKOUT_BUFFER(rndis) + UX_DEVICE_CLASS_RNDIS_BULKOUT_BUFFER_SIZE)
+#define UX_DEVICE_CLASS_RNDIS_INTERRUPTIN_BUFFER(rndis)     (UX_DEVICE_CLASS_RNDIS_BULKIN_BUFFER(rndis)  + UX_DEVICE_CLASS_RNDIS_BULKIN_BUFFER_SIZE)
 
 
 /* Requests - Ethernet Networking Control Model */
 
-#define UX_DEVICE_CLASS_RNDIS_SEND_ENCAPSULATED_COMMAND                        0x00        
+#define UX_DEVICE_CLASS_RNDIS_SEND_ENCAPSULATED_COMMAND                        0x00
                                         /* Issues a command in the format of the supported control
                                            protocol. The intent of this mechanism is to support
                                            networking devices (e.g., host-based cable modems)
                                            that require an additional vendor-defined interface for
                                            media specific hardware configuration and
                                            management.  */
-#define UX_DEVICE_CLASS_RNDIS_GET_ENCAPSULATED_RESPONSE                        0x01        
+#define UX_DEVICE_CLASS_RNDIS_GET_ENCAPSULATED_RESPONSE                        0x01
                                         /* Requests a response in the format of the supported
                                            control protocol.  */
 
@@ -577,7 +668,7 @@ UINT  _ux_device_class_rndis_msg_keep_alive(UX_SLAVE_CLASS_RNDIS *rndis, UX_SLAV
 VOID  _ux_device_class_rndis_interrupt_thread(ULONG rndis_class);
 VOID  _ux_device_class_rndis_bulkin_thread(ULONG rndis_class);
 VOID  _ux_device_class_rndis_bulkout_thread(ULONG rndis_class);
-
+UINT  _ux_device_class_rndis_uninitialize(UX_SLAVE_CLASS_COMMAND *command);
 
 /* Define Device RNDIS Class API prototypes.  */
 
@@ -587,10 +678,10 @@ VOID  _ux_device_class_rndis_bulkout_thread(ULONG rndis_class);
 /* Define OID supported List.  */
 extern ULONG ux_device_class_rndis_oid_supported_list[];
 
-/* Determine if a C++ compiler is being used.  If so, complete the standard 
-   C conditional started above.  */   
+/* Determine if a C++ compiler is being used.  If so, complete the standard
+   C conditional started above.  */
 #ifdef __cplusplus
-} 
-#endif 
+}
+#endif
 
 #endif /* UX_DEVICE_CLASS_RNDIS_H */

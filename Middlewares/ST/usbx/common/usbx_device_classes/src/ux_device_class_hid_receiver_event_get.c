@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_device_class_hid_receiver_event_get             PORTABLE C      */
-/*                                                           6.1.10       */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -68,6 +67,12 @@
 /*    DATE              NAME                      DESCRIPTION             */
 /*                                                                        */
 /*  01-31-2022     Chaoqiong Xiao           Initial Version 6.1.10        */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            cleaned compile with TRACE, */
+/*                                            resulting in version 6.1.12 */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added zero copy support,    */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_class_hid_receiver_event_get(UX_SLAVE_CLASS_HID *hid,
@@ -85,7 +90,7 @@ UX_DEVICE_CLASS_HID_RECEIVED_EVENT      *pos;
 
 
     /* If trace is enabled, insert this event into the trace buffer.  */
-    UX_TRACE_IN_LINE_INSERT(UX_TRACE_DEVICE_CLASS_HID_RECEIVER_EVENT_GET, hid, event, wait_option, 0, UX_TRACE_DEVICE_CLASS_EVENTS, 0, 0)
+    UX_TRACE_IN_LINE_INSERT(UX_TRACE_DEVICE_CLASS_HID_RECEIVER_EVENT_GET, hid, event, 0, 0, UX_TRACE_DEVICE_CLASS_EVENTS, 0, 0)
 
     /* Get receiver.  */
     receiver = hid -> ux_device_class_hid_receiver;
@@ -99,10 +104,65 @@ UX_DEVICE_CLASS_HID_RECEIVED_EVENT      *pos;
 
         /* Fill event structure to return.  */
         event -> ux_device_class_hid_received_event_length = pos -> ux_device_class_hid_received_event_length;
-        event -> ux_device_class_hid_received_event_data = (UCHAR *)&pos -> ux_device_class_hid_received_event_data;
+
+        /* Fill data buffer address to return.  */
+        event -> ux_device_class_hid_received_event_data = UX_DEVICE_CLASS_HID_RECEIVED_QUEUE_ITEM_BUFFER(pos);
+
         return(UX_SUCCESS);
     }
 
     return(UX_ERROR);
 #endif
+}
+
+
+/**************************************************************************/
+/*                                                                        */
+/*  FUNCTION                                               RELEASE        */
+/*                                                                        */
+/*    _uxe_device_class_hid_receiver_event_get            PORTABLE C      */
+/*                                                           6.3.0        */
+/*  AUTHOR                                                                */
+/*                                                                        */
+/*    Chaoqiong Xiao, Microsoft Corporation                               */
+/*                                                                        */
+/*  DESCRIPTION                                                           */
+/*                                                                        */
+/*    This function checks errors in HID event get function call.         */
+/*                                                                        */
+/*  INPUT                                                                 */
+/*                                                                        */
+/*    hid                                   Pointer to hid instance       */
+/*    event                                 Pointer of the event          */
+/*                                                                        */
+/*  OUTPUT                                                                */
+/*                                                                        */
+/*    None                                                                */
+/*                                                                        */
+/*  CALLS                                                                 */
+/*                                                                        */
+/*    _ux_device_class_hid_receiver_event_get                             */
+/*                                          Get a receiver event          */
+/*                                                                        */
+/*  CALLED BY                                                             */
+/*                                                                        */
+/*    Application                                                         */
+/*                                                                        */
+/*  RELEASE HISTORY                                                       */
+/*                                                                        */
+/*    DATE              NAME                      DESCRIPTION             */
+/*                                                                        */
+/*  10-31-2023     Chaoqiong Xiao           Initial Version 6.3.0         */
+/*                                                                        */
+/**************************************************************************/
+UINT  _uxe_device_class_hid_receiver_event_get(UX_SLAVE_CLASS_HID *hid,
+                                UX_DEVICE_CLASS_HID_RECEIVED_EVENT *event)
+{
+
+    /* Sanity check.  */
+    if ((hid == UX_NULL) || (event == UX_NULL))
+        return(UX_INVALID_PARAMETER);
+
+    /* Invoke function to free HID event.  */
+    return(_ux_device_class_hid_receiver_event_get(hid, event));
 }

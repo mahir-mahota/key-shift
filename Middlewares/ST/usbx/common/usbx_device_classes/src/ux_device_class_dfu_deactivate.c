@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_device_class_dfu_deactivate                     PORTABLE C      */ 
-/*                                                           6.1.6        */
+/*                                                           6.1.12       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -69,20 +68,24 @@
 /*  04-02-2021     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            removed endpoints aborting, */
 /*                                            resulting in version 6.1.6  */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed parameter/variable    */
+/*                                            names conflict C++ keyword, */
+/*                                            resulting in version 6.1.12 */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_class_dfu_deactivate(UX_SLAVE_CLASS_COMMAND *command)
 {
                                           
 UX_SLAVE_CLASS_DFU          *dfu;
-UX_SLAVE_CLASS              *class;
+UX_SLAVE_CLASS              *class_ptr;
 
 
     /* Get the class container.  */
-    class =  command -> ux_slave_class_command_class_ptr;
+    class_ptr =  command -> ux_slave_class_command_class_ptr;
 
     /* Get the class instance in the container.  */
-    dfu = (UX_SLAVE_CLASS_DFU *) class -> ux_slave_class_instance;
+    dfu = (UX_SLAVE_CLASS_DFU *) class_ptr -> ux_slave_class_instance;
 
     /* If there is a deactivate function call it.  */
     if (dfu -> ux_slave_class_dfu_instance_deactivate != UX_NULL)

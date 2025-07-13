@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -29,12 +28,13 @@
 #include "ux_device_stack.h"
 
 
+#if !defined(UX_DEVICE_STANDALONE)
 /**************************************************************************/ 
 /*                                                                        */ 
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_device_class_pima_interrupt_thread              PORTABLE C      */ 
-/*                                                           6.1.10       */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -77,6 +77,15 @@
 /*                                            refined macros names,       */
 /*                                            added transaction ID,       */
 /*                                            resulting in version 6.1.10 */
+/*  04-25-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed standalone compile,   */
+/*                                            resulting in version 6.1.11 */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed event message size,   */
+/*                                            resulting in version 6.1.12 */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            improved INT EP management, */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 VOID  _ux_device_class_pima_interrupt_thread(ULONG pima_class)
@@ -115,12 +124,15 @@ UCHAR                       *buffer;
         /* Get the pointer to the device.  */
         device =  &_ux_system_slave -> ux_system_slave_device;
         
-        /* All PIMA events are on the interrupt endpoint IN, from the host.  */
-        transfer_request_in =  &pima -> ux_device_class_pima_interrupt_endpoint -> ux_slave_endpoint_transfer_request;
     
         /* As long as the device is in the CONFIGURED state.  */
         while (device -> ux_slave_device_state == UX_DEVICE_CONFIGURED)
         { 
+
+            /* All PIMA events are on the interrupt endpoint IN, from the host.  */
+            if (pima -> ux_device_class_pima_interrupt_endpoint == UX_NULL)
+                break;
+            transfer_request_in =  &pima -> ux_device_class_pima_interrupt_endpoint -> ux_slave_endpoint_transfer_request;
 
             /* Wait until something has awaken us.  */
             status =  _ux_device_semaphore_get(&pima -> ux_device_class_pima_interrupt_thread_semaphore, UX_WAIT_FOREVER);
@@ -163,8 +175,8 @@ UCHAR                       *buffer;
                 _ux_utility_long_put(buffer + UX_DEVICE_CLASS_PIMA_AEI_PARAMETER_2, pima_event.ux_device_class_pima_event_parameter_3);
                 
                 /* Send the request to the device controller.  */
-                status =  _ux_device_stack_transfer_request(transfer_request_in, UX_DEVICE_CLASS_PIMA_AEI_MAX_LENGTH + 1, UX_DEVICE_CLASS_PIMA_AEI_MAX_LENGTH);
-                
+                status =  _ux_device_stack_transfer_request(transfer_request_in, UX_DEVICE_CLASS_PIMA_AEI_MAX_LENGTH, UX_DEVICE_CLASS_PIMA_AEI_MAX_LENGTH);
+
                 /* Check error code. */
                 if (status != UX_SUCCESS)
 
@@ -178,4 +190,4 @@ UCHAR                       *buffer;
     _ux_device_thread_suspend(&pima -> ux_device_class_pima_interrupt_thread);
     }
 }
-
+#endif

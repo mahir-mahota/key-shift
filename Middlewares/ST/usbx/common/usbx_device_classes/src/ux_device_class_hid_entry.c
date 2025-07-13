@@ -1,18 +1,17 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ *
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
-/**                                                                       */ 
-/** USBX Component                                                        */ 
+/**                                                                       */
+/** USBX Component                                                        */
 /**                                                                       */
 /**   Device HID Class                                                    */
 /**                                                                       */
@@ -27,52 +26,59 @@
 #include "ux_api.h"
 #include "ux_device_class_hid.h"
 #include "ux_device_stack.h"
- 
 
-/**************************************************************************/ 
-/*                                                                        */ 
-/*  FUNCTION                                               RELEASE        */ 
-/*                                                                        */ 
-/*    _ux_device_class_hid_entry                          PORTABLE C      */ 
-/*                                                           6.1          */
+
+/**************************************************************************/
+/*                                                                        */
+/*  FUNCTION                                               RELEASE        */
+/*                                                                        */
+/*    _ux_device_class_hid_entry                          PORTABLE C      */
+/*                                                           6.x          */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
 /*                                                                        */
 /*  DESCRIPTION                                                           */
-/*                                                                        */ 
-/*    This function is the entry point of the hid class. It               */ 
-/*    will be called by the device stack enumeration module when the      */ 
+/*                                                                        */
+/*    This function is the entry point of the hid class. It               */
+/*    will be called by the device stack enumeration module when the      */
 /*    host has sent a SET_CONFIGURATION command and the hid interface     */
 /*    needs to be mounted.                                                */
-/*                                                                        */ 
-/*  INPUT                                                                 */ 
-/*                                                                        */ 
-/*    command                               Pointer to class command      */ 
-/*                                                                        */ 
-/*  OUTPUT                                                                */ 
-/*                                                                        */ 
-/*    Completion Status                                                   */ 
-/*                                                                        */ 
-/*  CALLS                                                                 */ 
-/*                                                                        */ 
+/*                                                                        */
+/*  INPUT                                                                 */
+/*                                                                        */
+/*    command                               Pointer to class command      */
+/*                                                                        */
+/*  OUTPUT                                                                */
+/*                                                                        */
+/*    Completion Status                                                   */
+/*                                                                        */
+/*  CALLS                                                                 */
+/*                                                                        */
 /*    _ux_device_class_hid_initialize       Initialize hid class          */
 /*    _ux_device_class_hid_uninitialize     Uninitialize hid class        */
-/*    _ux_device_class_hid_activate         Activate hid class            */ 
-/*    _ux_device_class_hid_deactivate       Deactivate hid class          */ 
-/*    _ux_device_class_hid_control_request  Request control               */ 
-/*                                                                        */ 
-/*  CALLED BY                                                             */ 
-/*                                                                        */ 
+/*    _ux_device_class_hid_activate         Activate hid class            */
+/*    _ux_device_class_hid_deactivate       Deactivate hid class          */
+/*    _ux_device_class_hid_control_request  Request control               */
+/*                                                                        */
+/*  CALLED BY                                                             */
+/*                                                                        */
 /*    HID Class                                                           */
-/*                                                                        */ 
-/*  RELEASE HISTORY                                                       */ 
-/*                                                                        */ 
-/*    DATE              NAME                      DESCRIPTION             */ 
-/*                                                                        */ 
+/*                                                                        */
+/*  RELEASE HISTORY                                                       */
+/*                                                                        */
+/*    DATE              NAME                      DESCRIPTION             */
+/*                                                                        */
 /*  05-19-2020     Chaoqiong Xiao           Initial Version 6.0           */
 /*  09-30-2020     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            resulting in version 6.1    */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added error checks support, */
+/*                                            resulting in version 6.3.0  */
+/*  xx-xx-xxxx     Mohamed ayed             Modified comment(s),          */
+/*                                            fix typo,                   */
+/*                                            remove extra spaces,        */
+/*                                            resulting in version 6.x    */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_class_hid_entry(UX_SLAVE_CLASS_COMMAND *command)
@@ -89,16 +95,20 @@ UINT        status;
     case UX_SLAVE_CLASS_COMMAND_INITIALIZE:
 
         /* Call the init function of the HID class.  */
+#if defined(UX_DEVICE_CLASS_HID_ENABLE_ERROR_CHECKING)
+        status =  _uxe_device_class_hid_initialize(command);
+#else
         status =  _ux_device_class_hid_initialize(command);
-        
+#endif
+
         /* Return the completion status.  */
         return(status);
 
     case UX_SLAVE_CLASS_COMMAND_UNINITIALIZE:
 
-        /* Call the init function of the HID class.  */
+        /* Call the uninit function of the HID class.  */
         status =  _ux_device_class_hid_uninitialize(command);
-        
+
         /* Return the completion status.  */
         return(status);
 
@@ -125,7 +135,7 @@ UINT        status;
         /* The deactivate command is used when the device has been extracted.
            The device endpoints have to be dismounted and the hid thread canceled.  */
         status =  _ux_device_class_hid_deactivate(command);
-        
+
         /* Return the completion status.  */
         return(status);
 
@@ -137,13 +147,13 @@ UINT        status;
         /* Return the completion status.  */
         return(status);
 
-    default: 
+    default:
 
         /* If trace is enabled, insert this event into the trace buffer.  */
         UX_TRACE_IN_LINE_INSERT(UX_TRACE_ERROR, UX_FUNCTION_NOT_SUPPORTED, 0, 0, 0, UX_TRACE_ERRORS, 0, 0)
 
         /* Return an error.  */
         return(UX_FUNCTION_NOT_SUPPORTED);
-    }   
+    }
 }
 

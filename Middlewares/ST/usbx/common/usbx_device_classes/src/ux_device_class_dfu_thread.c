@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -83,17 +82,17 @@
 VOID  _ux_device_class_dfu_thread(ULONG dfu_class)
 {
 
-UX_SLAVE_CLASS                  *class;
+UX_SLAVE_CLASS                  *class_ptr;
 UX_SLAVE_CLASS_DFU              *dfu;
 UX_SLAVE_DCD                    *dcd;
 UINT                            status;
 ULONG                           actual_flags;
 
     /* Cast properly the dfu instance.  */
-    UX_THREAD_EXTENSION_PTR_GET(class, UX_SLAVE_CLASS, dfu_class)
+    UX_THREAD_EXTENSION_PTR_GET(class_ptr, UX_SLAVE_CLASS, dfu_class)
     
     /* Get the dfu instance from this class container.  */
-    dfu =  (UX_SLAVE_CLASS_DFU *) class -> ux_slave_class_instance;
+    dfu =  (UX_SLAVE_CLASS_DFU *) class_ptr -> ux_slave_class_instance;
     
     /* This thread runs forever.  */
     while(1)

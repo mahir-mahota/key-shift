@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -35,7 +34,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_device_class_storage_activate                   PORTABLE C      */ 
-/*                                                           6.1.10       */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -70,45 +69,53 @@
 /*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            added standalone support,   */
 /*                                            resulting in version 6.1.10 */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed parameter/variable    */
+/*                                            names conflict C++ keyword, */
+/*                                            resulting in version 6.1.12 */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added a new mode to manage  */
+/*                                            endpoint buffer in classes, */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_class_storage_activate(UX_SLAVE_CLASS_COMMAND *command)
 {
                                           
 UINT                                    status = UX_SUCCESS;
-UX_SLAVE_INTERFACE                      *interface;
+UX_SLAVE_INTERFACE                      *interface_ptr;
+UX_SLAVE_CLASS                          *class_ptr;
 UX_SLAVE_CLASS_STORAGE                  *storage;
-UX_SLAVE_CLASS                          *class_inst;
 #if defined(UX_DEVICE_STANDALONE)
 UX_SLAVE_ENDPOINT                       *endpoint;
 #endif
 
 
     /* Get the class container.  */
-    class_inst =  command -> ux_slave_class_command_class_ptr;
+    class_ptr =  command -> ux_slave_class_command_class_ptr;
 
     /* Get the class instance in the container.  */
-    storage = (UX_SLAVE_CLASS_STORAGE *)class_inst -> ux_slave_class_instance;
+    storage = (UX_SLAVE_CLASS_STORAGE *)class_ptr -> ux_slave_class_instance;
 
     /* Get the interface that owns this instance.  */
-    interface =  (UX_SLAVE_INTERFACE  *) command -> ux_slave_class_command_interface;
+    interface_ptr =  (UX_SLAVE_INTERFACE  *) command -> ux_slave_class_command_interface;
     
     /* Store the class instance into the interface.  */
-    interface -> ux_slave_interface_class_instance =  (VOID *)storage;
+    interface_ptr -> ux_slave_interface_class_instance =  (VOID *)storage;
          
     /* Now the opposite, store the interface in the class instance.  */
-    storage -> ux_slave_class_storage_interface =  interface;
+    storage -> ux_slave_class_storage_interface =  interface_ptr;
 
 #if !defined(UX_DEVICE_STANDALONE)
 
     /* Resume thread.  */
-    _ux_device_thread_resume(&class_inst -> ux_slave_class_thread); 
+    _ux_device_thread_resume(&class_ptr -> ux_slave_class_thread); 
 
 #else
 
     /* Locate the endpoints.  */
     /* Check the first endpoint direction, if IN we have the correct endpoint.  */
-    endpoint = interface -> ux_slave_interface_first_endpoint;
+    endpoint = interface_ptr -> ux_slave_interface_first_endpoint;
     if ((endpoint -> ux_slave_endpoint_descriptor.bEndpointAddress & UX_ENDPOINT_DIRECTION) != UX_ENDPOINT_IN)
     {
 
@@ -127,6 +134,15 @@ UX_SLAVE_ENDPOINT                       *endpoint;
         /* So the next endpoint has to be the OUT endpoint.  */
         storage -> ux_device_class_storage_ep_out = endpoint -> ux_slave_endpoint_next_endpoint;
     }
+
+#if UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1
+
+    /* Assign endpoint buffers.  */
+    storage -> ux_device_class_storage_ep_in -> ux_slave_endpoint_transfer_request.
+        ux_slave_transfer_request_data_pointer = UX_DEVICE_CLASS_STORAGE_BULKIN_BUFFER(storage);
+    storage -> ux_device_class_storage_ep_out -> ux_slave_endpoint_transfer_request.
+        ux_slave_transfer_request_data_pointer = UX_DEVICE_CLASS_STORAGE_BULKOUT_BUFFER(storage);
+#endif
 
     /* Reset states.  */
     storage -> ux_device_class_storage_buffer[0] = storage -> ux_device_class_storage_ep_out ->

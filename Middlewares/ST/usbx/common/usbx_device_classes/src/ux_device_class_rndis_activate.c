@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**                                                                       */ 
@@ -33,7 +32,7 @@
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_device_class_rndis_activate                     PORTABLE C      */ 
-/*                                                           6.1.10       */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -72,36 +71,52 @@
 /*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            refined macros names,       */
 /*                                            resulting in version 6.1.10 */
+/*  04-25-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed standalone compile,   */
+/*                                            resulting in version 6.1.11 */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed parameter/variable    */
+/*                                            names conflict C++ keyword, */
+/*                                            resulting in version 6.1.12 */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added zero copy support,    */
+/*                                            added a new mode to manage  */
+/*                                            endpoint buffer in classes, */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_class_rndis_activate(UX_SLAVE_CLASS_COMMAND *command)
 {
-                                          
-UX_SLAVE_INTERFACE          *interface;            
+#if defined(UX_DEVICE_STANDALONE)
+    UX_PARAMETER_NOT_USED(command);
+    return(UX_FUNCTION_NOT_SUPPORTED);
+#else
+
+UX_SLAVE_INTERFACE          *interface_ptr;            
+UX_SLAVE_CLASS              *class_ptr;
 UX_SLAVE_CLASS_RNDIS        *rndis;
-UX_SLAVE_CLASS              *class;
 UX_SLAVE_ENDPOINT           *endpoint;
 ULONG                       physical_address_msw;
 ULONG                       physical_address_lsw;
 
     /* Get the class container.  */
-    class =  command -> ux_slave_class_command_class_ptr;
+    class_ptr =  command -> ux_slave_class_command_class_ptr;
 
     /* Get the class instance in the container.  */
-    rndis = (UX_SLAVE_CLASS_RNDIS *) class -> ux_slave_class_instance;
+    rndis = (UX_SLAVE_CLASS_RNDIS *) class_ptr -> ux_slave_class_instance;
 
     /* Get the interface that owns this instance.  */
-    interface =  (UX_SLAVE_INTERFACE  *) command -> ux_slave_class_command_interface;
+    interface_ptr =  (UX_SLAVE_INTERFACE  *) command -> ux_slave_class_command_interface;
     
     /* Check if this is the Control or Data interface.  */
     if (command -> ux_slave_class_command_class == UX_DEVICE_CLASS_RNDIS_CLASS_COMMUNICATION_CONTROL)
     {
 
         /* Store the class instance into the interface.  */
-        interface -> ux_slave_interface_class_instance =  (VOID *)rndis;
+        interface_ptr -> ux_slave_interface_class_instance =  (VOID *)rndis;
          
         /* Now the opposite, store the interface in the class instance.  */
-        rndis -> ux_slave_class_rndis_interface =  interface;
+        rndis -> ux_slave_class_rndis_interface =  interface_ptr;
 
         /* If there is a activate function call it.  */
         if (rndis -> ux_slave_class_rndis_parameter.ux_slave_class_rndis_instance_activate != UX_NULL)
@@ -112,10 +127,10 @@ ULONG                       physical_address_lsw;
     else
     
         /* This is the DATA Class, only store the rndis instance in the interface.  */
-        interface -> ux_slave_interface_class_instance =  (VOID *)rndis;
+        interface_ptr -> ux_slave_interface_class_instance =  (VOID *)rndis;
 
     /* Locate the endpoints.  Interrupt for Control and Bulk in/out for Data.  */
-    endpoint =  interface -> ux_slave_interface_first_endpoint;
+    endpoint =  interface_ptr -> ux_slave_interface_first_endpoint;
     
     /* Parse all endpoints.  */
     while (endpoint != UX_NULL)
@@ -127,23 +142,40 @@ ULONG                       physical_address_lsw;
 
             /* Look at type.  */
             if ((endpoint -> ux_slave_endpoint_descriptor.bmAttributes & UX_MASK_ENDPOINT_TYPE) == UX_INTERRUPT_ENDPOINT)
-        
+            {
+
                 /* We have found the interrupt endpoint, save it.  */
                 rndis -> ux_slave_class_rndis_interrupt_endpoint =  endpoint;
+#if UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1
+                endpoint -> ux_slave_endpoint_transfer_request.ux_slave_transfer_request_data_pointer =
+                                UX_DEVICE_CLASS_RNDIS_INTERRUPTIN_BUFFER(rndis);
+#endif
+            }
 
             else
-                            
+            {
+
                 /* We have found the bulk in endpoint, save it.  */
                 rndis -> ux_slave_class_rndis_bulkin_endpoint =  endpoint;
-
+#if (UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1) && !defined(UX_DEVICE_CLASS_RNDIS_ZERO_COPY)
+                endpoint -> ux_slave_endpoint_transfer_request.ux_slave_transfer_request_data_pointer =
+                                UX_DEVICE_CLASS_RNDIS_BULKIN_BUFFER(rndis);
+#endif
+            }
         }
         else
         {
             /* Look at type for out endpoint.  */
             if ((endpoint -> ux_slave_endpoint_descriptor.bmAttributes & UX_MASK_ENDPOINT_TYPE) == UX_BULK_ENDPOINT)
-        
+            {
+
                 /* We have found the bulk out endpoint, save it.  */
                 rndis -> ux_slave_class_rndis_bulkout_endpoint =  endpoint;
+#if (UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1) && !defined(UX_DEVICE_CLASS_RNDIS_ZERO_COPY)
+                endpoint -> ux_slave_endpoint_transfer_request.ux_slave_transfer_request_data_pointer =
+                                UX_DEVICE_CLASS_RNDIS_BULKOUT_BUFFER(rndis);
+#endif
+            }
         }                
 
         /* Next endpoint.  */
@@ -177,12 +209,14 @@ ULONG                       physical_address_lsw;
                                         physical_address_lsw);
                 
         /* Reset the endpoint buffers.  */
+#if (UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1) && !defined(UX_DEVICE_CLASS_RNDIS_ZERO_COPY)
         _ux_utility_memory_set(rndis -> ux_slave_class_rndis_bulkout_endpoint -> ux_slave_endpoint_transfer_request. 
-                                        ux_slave_transfer_request_data_pointer, 0, UX_SLAVE_REQUEST_DATA_MAX_LENGTH); /* Use case of memset is verified. */
+                                        ux_slave_transfer_request_data_pointer, 0, UX_DEVICE_CLASS_RNDIS_BULKOUT_BUFFER_SIZE); /* Use case of memset is verified. */
         _ux_utility_memory_set(rndis -> ux_slave_class_rndis_bulkin_endpoint -> ux_slave_endpoint_transfer_request. 
-                                        ux_slave_transfer_request_data_pointer, 0, UX_SLAVE_REQUEST_DATA_MAX_LENGTH); /* Use case of memset is verified. */
+                                        ux_slave_transfer_request_data_pointer, 0, UX_DEVICE_CLASS_RNDIS_BULKIN_BUFFER_SIZE); /* Use case of memset is verified. */
+#endif
         _ux_utility_memory_set(rndis -> ux_slave_class_rndis_interrupt_endpoint -> ux_slave_endpoint_transfer_request. 
-                                        ux_slave_transfer_request_data_pointer, 0, UX_SLAVE_REQUEST_DATA_MAX_LENGTH); /* Use case of memset is verified. */
+                                        ux_slave_transfer_request_data_pointer, 0, UX_DEVICE_CLASS_RNDIS_INTERRUPTIN_BUFFER_SIZE); /* Use case of memset is verified. */
     
         /* Resume the endpoint threads.  */
         _ux_device_thread_resume(&rndis -> ux_slave_class_rndis_interrupt_thread); 
@@ -211,5 +245,5 @@ ULONG                       physical_address_lsw;
         /* Return completion status.  */
         return(UX_SUCCESS);
     }
+#endif
 }
-

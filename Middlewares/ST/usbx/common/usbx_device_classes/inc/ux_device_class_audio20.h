@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -26,7 +25,7 @@
 /*  COMPONENT DEFINITION                                   RELEASE        */
 /*                                                                        */
 /*    ux_device_class_audio20.h                           PORTABLE C      */
-/*                                                           6.1.8        */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -50,6 +49,17 @@
 /*                                            added extern "C" keyword    */
 /*                                            for compatibility with C++, */
 /*                                            resulting in version 6.1.8  */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added support of multiple   */
+/*                                            sampling frequencies,       */
+/*                                            added clock multiplier DEFs,*/
+/*                                            resulting in version 6.1.12 */
+/*  03-08-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added error checks support, */
+/*                                            resulting in version 6.2.1  */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            optimized USB descriptors,  */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 
@@ -65,6 +75,13 @@
 extern   "C" { 
 
 #endif  
+
+
+/* Internal option: enable the basic USBX error checking. This define is typically used
+   while debugging application.  */
+#if defined(UX_ENABLE_ERROR_CHECKING) && !defined(UX_DEVICE_CLASS_AUDIO_ENABLE_ERROR_CHECKING)
+#define UX_DEVICE_CLASS_AUDIO_ENABLE_ERROR_CHECKING
+#endif
 
 
 /* Define Audio Class function category codes.  */
@@ -139,6 +156,14 @@ extern   "C" {
 #define UX_DEVICE_CLASS_AUDIO20_CX_CONTROL_UNDEFINED              0x00
 #define UX_DEVICE_CLASS_AUDIO20_CX_CLOCK_SELECTOR_CONTROL         0x01
 
+
+/* Define Audio Class specific clock multiplier control selectors.  */
+
+
+#define UX_DEVICE_CLASS_AUDIO20_CM_CONTROL_UNDEFINED              0x00
+#define UX_DEVICE_CLASS_AUDIO20_CM_NUMERATOR_CONTROL              0x01
+#define UX_DEVICE_CLASS_AUDIO20_CM_DENOMINATOR_CONTROL            0x02
+
 /* Define Audio Class specific terminal control selectors.  */
 
 #define UX_DEVICE_CLASS_AUDIO20_TE_CONTROL_UNDEFINED              0x00
@@ -187,12 +212,15 @@ extern   "C" {
 typedef struct UX_DEVICE_CLASS_AUDIO20_AC_HEADER_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubtype;
-    ULONG           bcdADC;
-    ULONG           bCategory;
-    ULONG           wTotalLength;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubtype;
+    UCHAR           _align_bcdADC[1];
+    USHORT          bcdADC;
+    UCHAR           bCategory;
+    UCHAR           _align_wTotalLength[1];
+    USHORT          wTotalLength;
+    UCHAR           _align_bmControls[2];
     ULONG           bmControls;
 } UX_DEVICE_CLASS_AUDIO20_AC_HEADER_DESCRIPTOR;
 
@@ -202,14 +230,14 @@ typedef struct UX_DEVICE_CLASS_AUDIO20_AC_HEADER_DESCRIPTOR_STRUCT
 typedef struct UX_DEVICE_CLASS_AUDIO20_AC_CLOCK_SOURCE_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubType;
-    ULONG           bClockID;
-    ULONG           bmAttributes;
-    ULONG           bmControls;
-    ULONG           bAssocTerminal;
-    ULONG           iClockSource;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubType;
+    UCHAR           bClockID;
+    UCHAR           bmAttributes;
+    UCHAR           bmControls;
+    UCHAR           bAssocTerminal;
+    UCHAR           iClockSource;
 } UX_DEVICE_CLASS_AUDIO20_AC_CLOCK_SOURCE_DESCRIPTOR;
 
 
@@ -218,18 +246,21 @@ typedef struct UX_DEVICE_CLASS_AUDIO20_AC_CLOCK_SOURCE_DESCRIPTOR_STRUCT
 typedef struct UX_DEVICE_CLASS_AUDIO20_AC_INPUT_TERMINAL_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubType;
-    ULONG           bTerminalID;
-    ULONG           wTerminalType;
-    ULONG           bAssocTerminal;
-    ULONG           bCSourceID;
-    ULONG           bNrChannels;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubType;
+    UCHAR           bTerminalID;
+    USHORT          wTerminalType;
+    UCHAR           bAssocTerminal;
+    UCHAR           bCSourceID;
+    UCHAR           bNrChannels;
+    UCHAR           _align_bmChannelConfig[3];
     ULONG           bmChannelConfig;
-    ULONG           iChannelNames;
-    ULONG           bmControls;
-    ULONG           iTerminal;
+    UCHAR           iChannelNames;
+    UCHAR           _align_bmControls[1];
+    USHORT          bmControls;
+    UCHAR           iTerminal;
+    UCHAR           _align_size[3];
 } UX_DEVICE_CLASS_AUDIO20_AC_INPUT_TERMINAL_DESCRIPTOR;
 
 
@@ -238,16 +269,18 @@ typedef struct UX_DEVICE_CLASS_AUDIO20_AC_INPUT_TERMINAL_DESCRIPTOR_STRUCT
 typedef struct UX_DEVICE_CLASS_AUDIO20_AC_OUTPUT_TERMINAL_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubType;
-    ULONG           bTerminalID;
-    ULONG           wTerminalType;
-    ULONG           bAssocTerminal;
-    ULONG           bSourceID;
-    ULONG           bCSourceID;
-    ULONG           bmControls;
-    ULONG           iTerminal;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubType;
+    UCHAR           bTerminalID;
+    USHORT          wTerminalType;
+    UCHAR           bAssocTerminal;
+    UCHAR           bSourceID;
+    UCHAR           bCSourceID;
+    UCHAR           _align_bmControls[1];
+    USHORT          bmControls;
+    UCHAR           iTerminal;
+    UCHAR           _align_size[3];
 } UX_DEVICE_CLASS_AUDIO20_AC_OUTPUT_TERMINAL_DESCRIPTOR;
 
 
@@ -256,22 +289,24 @@ typedef struct UX_DEVICE_CLASS_AUDIO20_AC_OUTPUT_TERMINAL_DESCRIPTOR_STRUCT
 typedef struct UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubType;
-    ULONG           bUnitID;
-    ULONG           bSourceID;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubType;
+    UCHAR           bUnitID;
+    UCHAR           bSourceID;
+    UCHAR           _align_bmaControls[3];
     ULONG           bmaControls;
 } UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT_DESCRIPTOR;
 
 typedef struct UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT1_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubType;
-    ULONG           bUnitID;
-    ULONG           bSourceID;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubType;
+    UCHAR           bUnitID;
+    UCHAR           bSourceID;
+    UCHAR           _align_bmaControls[3];
     ULONG           bmaControls0;
     ULONG           bmaControls1;
 } UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT1_DESCRIPTOR;
@@ -279,11 +314,12 @@ typedef struct UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT1_DESCRIPTOR_STRUCT
 typedef struct UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT2_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubType;
-    ULONG           bUnitID;
-    ULONG           bSourceID;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubType;
+    UCHAR           bUnitID;
+    UCHAR           bSourceID;
+    UCHAR           _align_bmaControls[3];
     ULONG           bmaControls0;
     ULONG           bmaControls1;
     ULONG           bmaControls2;
@@ -292,11 +328,12 @@ typedef struct UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT2_DESCRIPTOR_STRUCT
 typedef struct UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT3_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubType;
-    ULONG           bUnitID;
-    ULONG           bSourceID;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubType;
+    UCHAR           bUnitID;
+    UCHAR           bSourceID;
+    UCHAR           _align_bmaControls[3];
     ULONG           bmaControls0;
     ULONG           bmaControls1;
     ULONG           bmaControls2;
@@ -306,11 +343,12 @@ typedef struct UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT3_DESCRIPTOR_STRUCT
 typedef struct UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT6_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubType;
-    ULONG           bUnitID;
-    ULONG           bSourceID;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubType;
+    UCHAR           bUnitID;
+    UCHAR           bSourceID;
+    UCHAR           _align_bmaControls[3];
     ULONG           bmaControls0;
     ULONG           bmaControls1;
     ULONG           bmaControls2;
@@ -323,11 +361,12 @@ typedef struct UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT6_DESCRIPTOR_STRUCT
 typedef struct UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT7_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubType;
-    ULONG           bUnitID;
-    ULONG           bSourceID;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubType;
+    UCHAR           bUnitID;
+    UCHAR           bSourceID;
+    UCHAR           _align_bmaControls[3];
     ULONG           bmaControls0;
     ULONG           bmaControls1;
     ULONG           bmaControls2;
@@ -341,11 +380,12 @@ typedef struct UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT7_DESCRIPTOR_STRUCT
 typedef struct UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT8_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubType;
-    ULONG           bUnitID;
-    ULONG           bSourceID;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubType;
+    UCHAR           bUnitID;
+    UCHAR           bSourceID;
+    UCHAR           _align_bmaControls[3];
     ULONG           bmaControls0;
     ULONG           bmaControls1;
     ULONG           bmaControls2;
@@ -363,16 +403,19 @@ typedef struct UX_DEVICE_CLASS_AUDIO20_AC_FEATURE_UNIT8_DESCRIPTOR_STRUCT
 typedef struct UX_DEVICE_CLASS_AUDIO20_AS_INTERFACE_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubtype;
-    ULONG           bTerminalLink;
-    ULONG           bmControls;
-    ULONG           bFormatType;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubtype;
+    UCHAR           bTerminalLink;
+    UCHAR           bmControls;
+    UCHAR           bFormatType;
+    UCHAR           _align_bmFormats[2];
     ULONG           bmFormats;
-    ULONG           bNrChannels;
+    UCHAR           bNrChannels;
+    UCHAR           _align_bmChannelConfig[3];
     ULONG           bmChannelConfig;
-    ULONG           iChannelNames;
+    UCHAR           iChannelNames;
+    UCHAR           _align_size[3];
 } UX_DEVICE_CLASS_AUDIO20_AS_INTERFACE_DESCRIPTOR;
 
 
@@ -381,12 +424,13 @@ typedef struct UX_DEVICE_CLASS_AUDIO20_AS_INTERFACE_DESCRIPTOR_STRUCT
 typedef struct UX_DEVICE_CLASS_AUDIO20_AS_TYPE_I_FORMAT_TYPE_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubtype;
-    ULONG           bFormatType;
-    ULONG           bSubslotSize;
-    ULONG           bBitResolution;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubtype;
+    UCHAR           bFormatType;
+    UCHAR           bSubslotSize;
+    UCHAR           bBitResolution;
+    UCHAR           _align_size[2];
 } UX_DEVICE_CLASS_AUDIO20_AS_TYPE_I_FORMAT_TYPE_DESCRIPTOR;
 
 
@@ -395,23 +439,25 @@ typedef struct UX_DEVICE_CLASS_AUDIO20_AS_TYPE_I_FORMAT_TYPE_DESCRIPTOR_STRUCT
 typedef struct UX_DEVICE_CLASS_AUDIO20_AS_DATA_ENDPOINT_DESCRIPTOR_STRUCT
 {
 
-    ULONG           bLength;
-    ULONG           bDescriptorType;
-    ULONG           bDescriptorSubtype;
-    ULONG           bmAttributes;
-    ULONG           bmControls;
-    ULONG           bLockDelayUnits;
-    ULONG           wLockDelay;
+    UCHAR           bLength;
+    UCHAR           bDescriptorType;
+    UCHAR           bDescriptorSubtype;
+    UCHAR           bmAttributes;
+    UCHAR           bmControls;
+    UCHAR           bLockDelayUnits;
+    USHORT          wLockDelay;
 } UX_DEVICE_CLASS_AUDIO20_AS_DATA_ENDPOINT_DESCRIPTOR;
 
 typedef struct UX_DEVICE_CLASS_AUDIO20_CONTROL_STRUCT
 {
-    ULONG           ux_device_class_audio20_control_cs_id;
-    ULONG           ux_device_class_audio20_control_fu_id;
-    ULONG           ux_device_class_audio20_control_sampling_frequency;
-
     ULONG           ux_device_class_audio20_control_changed;
 
+    ULONG           ux_device_class_audio20_control_cs_id;
+    ULONG           ux_device_class_audio20_control_sampling_frequency;         /* Set to 0 to customize frequencies (with following two fields).  */
+    ULONG           ux_device_class_audio20_control_sampling_frequency_cur;     /* Current selected frequency.  */
+    UCHAR           *ux_device_class_audio20_control_sampling_frequency_range;  /* UAC 2.0 Layer 3 parameter block of RANGE.  */
+
+    ULONG           ux_device_class_audio20_control_fu_id;
     USHORT          ux_device_class_audio20_control_mute[1];
     SHORT           ux_device_class_audio20_control_volume_min[1];
     SHORT           ux_device_class_audio20_control_volume_max[1];
@@ -419,8 +465,9 @@ typedef struct UX_DEVICE_CLASS_AUDIO20_CONTROL_STRUCT
     SHORT           ux_device_class_audio20_control_volume[1];
 } UX_DEVICE_CLASS_AUDIO20_CONTROL;
 
-#define UX_DEVICE_CLASS_AUDIO20_CONTROL_MUTE_CHANGED   1
-#define UX_DEVICE_CLASS_AUDIO20_CONTROL_VOLUME_CHANGED 2
+#define UX_DEVICE_CLASS_AUDIO20_CONTROL_MUTE_CHANGED                1u
+#define UX_DEVICE_CLASS_AUDIO20_CONTROL_VOLUME_CHANGED              2u
+#define UX_DEVICE_CLASS_AUDIO20_CONTROL_FREQUENCY_CHANGED           4u
 
 typedef struct UX_DEVICE_CLASS_AUDIO20_CONTROL_GROUP_STRUCT
 {
@@ -433,7 +480,19 @@ UINT _ux_device_class_audio20_control_process(UX_DEVICE_CLASS_AUDIO *audio,
                                               UX_SLAVE_TRANSFER *transfer,
                                               UX_DEVICE_CLASS_AUDIO20_CONTROL_GROUP *group);
 
+UINT _uxe_device_class_audio20_control_process(UX_DEVICE_CLASS_AUDIO *audio,
+                                              UX_SLAVE_TRANSFER *transfer,
+                                              UX_DEVICE_CLASS_AUDIO20_CONTROL_GROUP *group);
+
+#if defined(UX_DEVICE_CLASS_AUDIO_ENABLE_ERROR_CHECKING)
+
+#define ux_device_class_audio20_control_process _uxe_device_class_audio20_control_process
+
+#else
+
 #define ux_device_class_audio20_control_process _ux_device_class_audio20_control_process
+
+#endif
 
 /* Determine if a C++ compiler is being used.  If so, complete the standard 
    C conditional started above.  */   

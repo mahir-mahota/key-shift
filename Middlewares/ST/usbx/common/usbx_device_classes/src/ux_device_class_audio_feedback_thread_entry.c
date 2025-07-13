@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -35,7 +34,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_device_class_audio_feedback_thread_entry        PORTABLE C      */
-/*                                                           6.1.10       */
+/*                                                           6.2.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -70,11 +69,17 @@
 /*    DATE              NAME                      DESCRIPTION             */
 /*                                                                        */
 /*  01-31-2022     Chaoqiong Xiao           Initial Version 6.1.10        */
+/*  10-31-2022     Yajun Xia                Modified comment(s),          */
+/*                                            added standalone support,   */
+/*                                            resulting in version 6.2.0  */
 /*                                                                        */
 /**************************************************************************/
 VOID _ux_device_class_audio_feedback_thread_entry(ULONG audio_stream)
 {
-
+#if defined(UX_DEVICE_STANDALONE)
+    UX_PARAMETER_NOT_USED(audio_stream);
+    return;
+#else
 UINT                            status;
 UX_DEVICE_CLASS_AUDIO_STREAM    *stream;
 UX_SLAVE_DEVICE                 *device;
@@ -128,5 +133,6 @@ ULONG                           transfer_length;
         /* We need to suspend ourselves. We will be resumed by the device enumeration module or when a change of alternate setting happens.  */
         _ux_utility_thread_suspend(&stream -> ux_device_class_audio_stream_feedback_thread);
     }
+#endif
 }
 #endif

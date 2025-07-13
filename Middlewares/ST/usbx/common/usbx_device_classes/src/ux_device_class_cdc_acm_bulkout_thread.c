@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -35,7 +34,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_device_class_cdc_acm_bulkout_thread             PORTABLE C      */
-/*                                                           6.1.10       */
+/*                                                           6.3.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -79,6 +78,15 @@
 /*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            refined macros names,       */
 /*                                            resulting in version 6.1.10 */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed parameter/variable    */
+/*                                            names conflict C++ keyword, */
+/*                                            resulting in version 6.1.12 */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added zero copy support,    */
+/*                                            added a new mode to manage  */
+/*                                            endpoint buffer in classes, */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 VOID  _ux_device_class_cdc_acm_bulkout_thread(ULONG cdc_acm_class)
@@ -87,7 +95,7 @@ VOID  _ux_device_class_cdc_acm_bulkout_thread(ULONG cdc_acm_class)
 UX_SLAVE_CLASS_CDC_ACM          *cdc_acm;
 UX_SLAVE_DEVICE                 *device;
 UX_SLAVE_ENDPOINT               *endpoint;
-UX_SLAVE_INTERFACE              *interface;
+UX_SLAVE_INTERFACE              *interface_ptr;
 UX_SLAVE_TRANSFER               *transfer_request;
 UINT                            status;
 
@@ -98,10 +106,10 @@ UINT                            status;
     device =  &_ux_system_slave -> ux_system_slave_device;
 
     /* This is the first time we are activated. We need the interface to the class.  */
-    interface =  cdc_acm -> ux_slave_class_cdc_acm_interface;
+    interface_ptr =  cdc_acm -> ux_slave_class_cdc_acm_interface;
 
     /* Locate the endpoints.  */
-    endpoint =  interface -> ux_slave_interface_first_endpoint;
+    endpoint =  interface_ptr -> ux_slave_interface_first_endpoint;
 
     /* Check the endpoint direction, if OUT we have the correct endpoint.  */
     if ((endpoint -> ux_slave_endpoint_descriptor.bEndpointAddress & UX_ENDPOINT_DIRECTION) != UX_ENDPOINT_OUT)
@@ -121,6 +129,13 @@ UINT                            status;
         /* As long as the device is in the CONFIGURED state.  */
         while (device -> ux_slave_device_state == UX_DEVICE_CONFIGURED)
         {
+
+#if UX_DEVICE_ENDPOINT_BUFFER_OWNER == 1
+
+            /* Use class managed buffer.  */
+            transfer_request -> ux_slave_transfer_request_data_pointer =
+                                UX_DEVICE_CLASS_CDC_ACM_READ_BUFFER(cdc_acm);
+#endif
 
             /* Send the request to the device controller.  */
             status =  _ux_device_stack_transfer_request(transfer_request, endpoint -> ux_slave_endpoint_descriptor.wMaxPacketSize,

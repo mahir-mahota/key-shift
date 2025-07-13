@@ -1,17 +1,16 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
-/**                                                                       */ 
-/** USBX Component                                                        */ 
+/**                                                                       */
+/** USBX Component                                                        */
 /**                                                                       */
 /**   Device DFU Class                                                    */
 /**                                                                       */
@@ -28,45 +27,45 @@
 #include "ux_device_stack.h"
 
 
-/**************************************************************************/ 
-/*                                                                        */ 
-/*  FUNCTION                                               RELEASE        */ 
-/*                                                                        */ 
-/*    _ux_device_class_dfu_initialize                     PORTABLE C      */ 
-/*                                                           6.1.10       */
+/**************************************************************************/
+/*                                                                        */
+/*  FUNCTION                                               RELEASE        */
+/*                                                                        */
+/*    _ux_device_class_dfu_initialize                     PORTABLE C      */
+/*                                                           6.1.12       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
 /*                                                                        */
 /*  DESCRIPTION                                                           */
-/*                                                                        */ 
-/*    This function initializes the USB DFU device.                       */ 
-/*                                                                        */ 
-/*  INPUT                                                                 */ 
-/*                                                                        */ 
-/*    command                               Pointer to dfu command        */ 
-/*                                                                        */ 
-/*  OUTPUT                                                                */ 
-/*                                                                        */ 
-/*    Completion Status                                                   */ 
-/*                                                                        */ 
-/*  CALLS                                                                 */ 
-/*                                                                        */ 
+/*                                                                        */
+/*    This function initializes the USB DFU device.                       */
+/*                                                                        */
+/*  INPUT                                                                 */
+/*                                                                        */
+/*    command                               Pointer to dfu command        */
+/*                                                                        */
+/*  OUTPUT                                                                */
+/*                                                                        */
+/*    Completion Status                                                   */
+/*                                                                        */
+/*  CALLS                                                                 */
+/*                                                                        */
 /*    _ux_utility_memory_allocate           Allocate memory               */
 /*    _ux_utility_memory_free               Free memory                   */
 /*    _ux_utility_descriptor_parse          Parse a descriptor            */
 /*    _ux_utility_event_flags_create        Create event flags            */
 /*    _ux_utility_event_flags_delete        Delete event flags            */
 /*    _ux_device_thread_create              Create thread                 */
-/*                                                                        */ 
-/*  CALLED BY                                                             */ 
-/*                                                                        */ 
-/*    USBX Source Code                                                    */ 
-/*                                                                        */ 
-/*  RELEASE HISTORY                                                       */ 
-/*                                                                        */ 
-/*    DATE              NAME                      DESCRIPTION             */ 
-/*                                                                        */ 
+/*                                                                        */
+/*  CALLED BY                                                             */
+/*                                                                        */
+/*    USBX Source Code                                                    */
+/*                                                                        */
+/*  RELEASE HISTORY                                                       */
+/*                                                                        */
+/*    DATE              NAME                      DESCRIPTION             */
+/*                                                                        */
 /*  05-19-2020     Chaoqiong Xiao           Initial Version 6.0           */
 /*  09-30-2020     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            used UX prefix to refer to  */
@@ -80,23 +79,30 @@
 /*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            added standalone support,   */
 /*                                            resulting in version 6.1.10 */
+/*  04-25-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            internal clean up,          */
+/*                                            resulting in version 6.1.11 */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed parameter/variable    */
+/*                                            names conflict C++ keyword, */
+/*                                            resulting in version 6.1.12 */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_class_dfu_initialize(UX_SLAVE_CLASS_COMMAND *command)
 {
-                                          
+
 UX_SLAVE_CLASS_DFU                      *dfu;
 UX_SLAVE_CLASS_DFU_PARAMETER            *dfu_parameter;
-UX_SLAVE_CLASS                          *class;
-UINT                                    status;
+UX_SLAVE_CLASS                          *class_ptr;
+UINT                                    status = UX_DESCRIPTOR_CORRUPTED;
 UX_DFU_FUNCTIONAL_DESCRIPTOR            dfu_functional_descriptor;
-UCHAR                                   *dfu_framework; 
+UCHAR                                   *dfu_framework;
 ULONG                                   dfu_framework_length;
 UCHAR                                   descriptor_type;
 ULONG                                   descriptor_length;
 
     /* Get the class container.  */
-    class =  command -> ux_slave_class_command_class_ptr;
+    class_ptr =  command -> ux_slave_class_command_class_ptr;
 
     /* Create an instance of the device dfu class.  */
     dfu =  _ux_utility_memory_allocate(UX_NO_ALIGN, UX_REGULAR_MEMORY, sizeof(UX_SLAVE_CLASS_DFU));
@@ -106,7 +112,7 @@ ULONG                                   descriptor_length;
         return(UX_MEMORY_INSUFFICIENT);
 
     /* Save the address of the DFU instance inside the DFU container.  */
-    class -> ux_slave_class_instance = (VOID *) dfu;
+    class_ptr -> ux_slave_class_instance = (VOID *) dfu;
 
     /* Get the pointer to the application parameters for the dfu class.  */
     dfu_parameter =  command -> ux_slave_class_command_parameter;
@@ -130,9 +136,8 @@ ULONG                                   descriptor_length;
        an interface descriptor and finally a functional descriptor. */
     dfu_framework        =  _ux_system_slave -> ux_system_slave_dfu_framework;
     dfu_framework_length =  _ux_system_slave -> ux_system_slave_dfu_framework_length;
-    
+
     /* Parse the device framework and locate interfaces and endpoint descriptor(s).  */
-    status = UX_DESCRIPTOR_CORRUPTED;
     while (dfu_framework_length != 0)
     {
 
@@ -163,10 +168,10 @@ ULONG                                   descriptor_length;
 
             /* Retrieve the DFU capabilities and store them in the system.  */
             _ux_system_slave -> ux_system_slave_device_dfu_capabilities = dfu_functional_descriptor.bmAttributes;
-            
+
             /* Retrieve the DFU timeout value. */
             _ux_system_slave -> ux_system_slave_device_dfu_detach_timeout = dfu_functional_descriptor.wDetachTimeOut;
-            
+
             /* Retrieve the DFU transfer size value. */
             _ux_system_slave -> ux_system_slave_device_dfu_transfer_size = dfu_functional_descriptor.wTransferSize;
 
@@ -194,13 +199,13 @@ ULONG                                   descriptor_length;
     /* Check status.  */
     if (status != UX_SUCCESS)
         status = UX_EVENT_ERROR;
-    
+
     /* Allocate some memory for the dfu thread stack. */
     if (status == UX_SUCCESS)
     {
-        dfu -> ux_slave_class_dfu_thread_stack =  
+        dfu -> ux_slave_class_dfu_thread_stack =
                 _ux_utility_memory_allocate(UX_NO_ALIGN, UX_REGULAR_MEMORY, UX_THREAD_STACK_SIZE);
-        
+
         /* Check for successful allocation.  */
         if (dfu -> ux_slave_class_dfu_thread_stack  == UX_NULL)
             status = UX_MEMORY_INSUFFICIENT;
@@ -209,9 +214,9 @@ ULONG                                   descriptor_length;
     /* dfu needs a thread to watch for disconnect and timer event for the DFU_DETACH sequence.  */
     if (status == UX_SUCCESS)
     {
-        status =  _ux_device_thread_create(&dfu -> ux_slave_class_dfu_thread , "ux_slave_class_dfu_thread", 
+        status =  _ux_device_thread_create(&dfu -> ux_slave_class_dfu_thread , "ux_slave_class_dfu_thread",
                     _ux_device_class_dfu_thread,
-                    (ULONG) (ALIGN_TYPE) class, (VOID *) dfu -> ux_slave_class_dfu_thread_stack,
+                    (ULONG) (ALIGN_TYPE) class_ptr, (VOID *) dfu -> ux_slave_class_dfu_thread_stack,
                     UX_THREAD_STACK_SIZE, UX_THREAD_PRIORITY_CLASS,
                     UX_THREAD_PRIORITY_CLASS, UX_NO_TIME_SLICE, UX_AUTO_START);
 
@@ -220,17 +225,17 @@ ULONG                                   descriptor_length;
             status = UX_THREAD_ERROR;
     }
 
-    UX_THREAD_EXTENSION_PTR_SET(&(dfu -> ux_slave_class_dfu_thread), class)
+    UX_THREAD_EXTENSION_PTR_SET(&(dfu -> ux_slave_class_dfu_thread), class_ptr)
 #else
 
     /* Set task function.  */
-    class -> ux_slave_class_task_function = _ux_device_class_dfu_tasks_run;
+    class_ptr -> ux_slave_class_task_function = _ux_device_class_dfu_tasks_run;
 #endif
 
     /* Return completion status.  */
     if (status == UX_SUCCESS)
         return(UX_SUCCESS);
-    
+
     /* There is error, free resources.  */
 
 #if !defined(UX_DEVICE_STANDALONE)
@@ -243,9 +248,65 @@ ULONG                                   descriptor_length;
 #endif
 
     /* Detach from container and free instance memory.  */
-    class -> ux_slave_class_instance = UX_NULL;
+    class_ptr -> ux_slave_class_instance = UX_NULL;
     _ux_utility_memory_free(dfu);
 
     return(status);
 }
 
+/**************************************************************************/
+/*                                                                        */
+/*  FUNCTION                                               RELEASE        */
+/*                                                                        */
+/*    _uxe_device_class_dfu_initialize                    PORTABLE C      */
+/*                                                           6.3.0        */
+/*  AUTHOR                                                                */
+/*                                                                        */
+/*    Yajun Xia, Microsoft Corporation                                    */
+/*                                                                        */
+/*  DESCRIPTION                                                           */
+/*                                                                        */
+/*    This function checks errors in DFU device class initialize          */
+/*    function.                                                           */
+/*                                                                        */
+/*  INPUT                                                                 */
+/*                                                                        */
+/*    command                               Pointer to dfu command        */
+/*                                                                        */
+/*  OUTPUT                                                                */
+/*                                                                        */
+/*    Completion Status                                                   */
+/*                                                                        */
+/*  CALLS                                                                 */
+/*                                                                        */
+/*    _ux_device_class_dfu_initialize       DFU device class initialize   */
+/*                                          function.                     */
+/*                                                                        */
+/*  CALLED BY                                                             */
+/*                                                                        */
+/*    USBX Source Code                                                    */
+/*                                                                        */
+/*  RELEASE HISTORY                                                       */
+/*                                                                        */
+/*    DATE              NAME                      DESCRIPTION             */
+/*                                                                        */
+/*  10-31-2023     Yajun Xia                Initial Version 6.3.0         */
+/*                                                                        */
+/**************************************************************************/
+UINT  _uxe_device_class_dfu_initialize(UX_SLAVE_CLASS_COMMAND *command)
+{
+
+UX_SLAVE_CLASS_DFU_PARAMETER            *dfu_parameter;
+
+    /* Static Check */
+    if (command -> ux_slave_class_command_parameter == UX_NULL)
+        return(UX_INVALID_PARAMETER);
+
+    dfu_parameter =  (UX_SLAVE_CLASS_DFU_PARAMETER *) command -> ux_slave_class_command_parameter;
+
+    if ((dfu_parameter -> ux_slave_class_dfu_parameter_framework == UX_NULL) &&
+        (dfu_parameter -> ux_slave_class_dfu_parameter_framework_length > 0))
+        return(UX_INVALID_PARAMETER);
+
+    return _ux_device_class_dfu_initialize(command);
+}

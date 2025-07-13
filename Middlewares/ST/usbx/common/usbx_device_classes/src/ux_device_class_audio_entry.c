@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ *
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_device_class_audio_entry                        PORTABLE C      */
-/*                                                           6.1          */
+/*                                                           6.x          */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -74,6 +73,15 @@
 /*  05-19-2020     Chaoqiong Xiao           Initial Version 6.0           */
 /*  09-30-2020     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            resulting in version 6.1    */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            returned request status,    */
+/*                                            resulting in version 6.1.12 */
+/*  03-08-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added error checks support, */
+/*                                            resulting in version 6.2.1  */
+/*  xx-xx-xxxx     Mohamed ayed             Modified comment(s),          */
+/*                                            fix typo,                   */
+/*                                            resulting in version 6.x    */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_device_class_audio_entry(UX_SLAVE_CLASS_COMMAND *command)
@@ -90,14 +98,18 @@ UINT        status;
     case UX_SLAVE_CLASS_COMMAND_INITIALIZE:
 
         /* Call the init function of the Audio class.  */
+#if defined(UX_DEVICE_CLASS_AUDIO_ENABLE_ERROR_CHECKING)
+        status =  _uxe_device_class_audio_initialize(command);
+#else
         status =  _ux_device_class_audio_initialize(command);
+#endif
 
         /* Return the completion status.  */
         return(status);
 
     case UX_SLAVE_CLASS_COMMAND_UNINITIALIZE:
 
-        /* Call the init function of the Audio class.  */
+        /* Call the uninit function of the Audio class.  */
         status =  _ux_device_class_audio_uninitialize(command);
 
         /* Return the completion status.  */
@@ -146,10 +158,7 @@ UINT        status;
     case UX_SLAVE_CLASS_COMMAND_REQUEST:
 
         /* The request command is used when the host sends a command on the control endpoint.  */
-        _ux_device_class_audio_control_request(command);
-
-        /* Return the completion status.  */
-        return(UX_SUCCESS);
+        return _ux_device_class_audio_control_request(command);
 
     default:
 
@@ -157,4 +166,3 @@ UINT        status;
         return(UX_FUNCTION_NOT_SUPPORTED);
     }
 }
-

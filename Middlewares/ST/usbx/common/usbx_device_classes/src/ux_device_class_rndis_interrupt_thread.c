@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -29,12 +28,13 @@
 #include "ux_device_stack.h"
 
 
+#if !defined(UX_DEVICE_STANDALONE)
 /**************************************************************************/ 
 /*                                                                        */ 
 /*  FUNCTION                                               RELEASE        */ 
 /*                                                                        */ 
 /*    _ux_device_class_rndis_interrupt_thread             PORTABLE C      */ 
-/*                                                           6.1.10       */
+/*                                                           6.1.12       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -75,23 +75,30 @@
 /*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            refined macros names,       */
 /*                                            resulting in version 6.1.10 */
+/*  04-25-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed standalone compile,   */
+/*                                            resulting in version 6.1.11 */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed parameter/variable    */
+/*                                            names conflict C++ keyword, */
+/*                                            resulting in version 6.1.12 */
 /*                                                                        */
 /**************************************************************************/
 VOID  _ux_device_class_rndis_interrupt_thread(ULONG rndis_class)
 {
 
-UX_SLAVE_CLASS                  *class;
-UX_SLAVE_CLASS_RNDIS              *rndis;
+UX_SLAVE_CLASS                  *class_ptr;
+UX_SLAVE_CLASS_RNDIS            *rndis;
 UX_SLAVE_DEVICE                 *device;
 UX_SLAVE_TRANSFER               *transfer_request;
 UINT                            status;
 ULONG                           actual_flags;
 
     /* Cast properly the rndis instance.  */
-    UX_THREAD_EXTENSION_PTR_GET(class, UX_SLAVE_CLASS, rndis_class)
+    UX_THREAD_EXTENSION_PTR_GET(class_ptr, UX_SLAVE_CLASS, rndis_class)
     
     /* Get the rndis instance from this class container.  */
-    rndis =  (UX_SLAVE_CLASS_RNDIS *) class -> ux_slave_class_instance;
+    rndis =  (UX_SLAVE_CLASS_RNDIS *) class_ptr -> ux_slave_class_instance;
     
     /* Get the pointer to the device.  */
     device =  &_ux_system_slave -> ux_system_slave_device;
@@ -137,4 +144,4 @@ ULONG                           actual_flags;
 
     }
 }
-
+#endif

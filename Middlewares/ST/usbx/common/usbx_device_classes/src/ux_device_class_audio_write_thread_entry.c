@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 /**************************************************************************/
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_device_class_audio_write_thread_entry           PORTABLE C      */
-/*                                                           6.1.10       */
+/*                                                           6.2.0        */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -75,6 +74,14 @@
 /*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            refined macros names,       */
 /*                                            resulting in version 6.1.10 */
+/*  10-31-2022     Yajun Xia                Modified comment(s),          */
+/*                                            added standalone support,   */
+/*                                            resulting in version 6.2.0  */
+/*  10-31-2023     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            added a new mode to manage  */
+/*                                            endpoint buffer in classes  */
+/*                                            with zero copy enabled,     */
+/*                                            resulting in version 6.3.0  */
 /*                                                                        */
 /**************************************************************************/
 VOID _ux_device_class_audio_write_thread_entry(ULONG audio_stream)
@@ -115,9 +122,19 @@ ULONG                           actual_length;
 
             /* Start frame transfer anyway (even ZLP).  */
             transfer_length = stream -> ux_device_class_audio_stream_transfer_pos -> ux_device_class_audio_frame_length;
+
+#if UX_DEVICE_ENDPOINT_BUFFER_OWNER == 0
+
+            /* Stack owns endpoint buffer, copy to buffer.  */
             if (transfer_length)
                 _ux_utility_memory_copy(transfer -> ux_slave_transfer_request_data_pointer,
                     stream -> ux_device_class_audio_stream_transfer_pos -> ux_device_class_audio_frame_data, transfer_length); /* Use case of memcpy is verified. */
+#else
+
+            /* Zero copy: directly use frame buffer to transfer.  */
+            transfer -> ux_slave_transfer_request_data_pointer = stream ->
+                    ux_device_class_audio_stream_transfer_pos -> ux_device_class_audio_frame_data;
+#endif
 
             /* Issue transfer request, thread blocked until transfer done.  */
             status = _ux_device_stack_transfer_request(transfer, transfer_length, transfer_length);
@@ -153,7 +170,10 @@ ULONG                           actual_length;
 
                 /* Error trap!  */
                 if (next_frame -> ux_device_class_audio_frame_length == 0)
+                {
+                    stream -> ux_device_class_audio_stream_buffer_error_count ++;
                     _ux_system_error_handler(UX_SYSTEM_LEVEL_THREAD, UX_SYSTEM_CONTEXT_CLASS, UX_BUFFER_OVERFLOW);
+                }
             }
             else
             {
@@ -162,9 +182,12 @@ ULONG                           actual_length;
                 if (next_frame -> ux_device_class_audio_frame_length)
                     stream -> ux_device_class_audio_stream_transfer_pos = next_frame;
                 else
+                {
 
                     /* Error trap!  */
                     _ux_system_error_handler(UX_SYSTEM_LEVEL_THREAD, UX_SYSTEM_CONTEXT_CLASS, UX_BUFFER_OVERFLOW);
+                    stream -> ux_device_class_audio_stream_buffer_error_count ++;
+                }
             }
 
             /* Invoke notification callback.  */

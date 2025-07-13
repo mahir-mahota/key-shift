@@ -1,13 +1,12 @@
-/**************************************************************************/
-/*                                                                        */
-/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
-/*                                                                        */
-/*       This software is licensed under the Microsoft Software License   */
-/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
-/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
-/*       and in the root directory of this software.                      */
-/*                                                                        */
-/**************************************************************************/
+/***************************************************************************
+ * Copyright (c) 2024 Microsoft Corporation 
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License which is available at
+ * https://opensource.org/licenses/MIT.
+ * 
+ * SPDX-License-Identifier: MIT
+ **************************************************************************/
 
 
 /**************************************************************************/
@@ -34,7 +33,7 @@
 /*  FUNCTION                                               RELEASE        */
 /*                                                                        */
 /*    _ux_host_stack_device_remove                        PORTABLE C      */
-/*                                                           6.1.10       */
+/*                                                           6.1.12       */
 /*  AUTHOR                                                                */
 /*                                                                        */
 /*    Chaoqiong Xiao, Microsoft Corporation                               */
@@ -80,6 +79,10 @@
 /*  01-31-2022     Chaoqiong Xiao           Modified comment(s),          */
 /*                                            added standalone support,   */
 /*                                            resulting in version 6.1.10 */
+/*  07-29-2022     Chaoqiong Xiao           Modified comment(s),          */
+/*                                            fixed parameter/variable    */
+/*                                            names conflict C++ keyword, */
+/*                                            resulting in version 6.1.12 */
 /*                                                                        */
 /**************************************************************************/
 UINT  _ux_host_stack_device_remove(UX_HCD *hcd, UX_DEVICE *parent, UINT port_index)
@@ -90,7 +93,7 @@ ULONG                       container_index;
 #endif
 UX_DEVICE                   *device;
 UX_CONFIGURATION            *configuration;
-UX_INTERFACE                *interface;
+UX_INTERFACE                *interface_ptr;
 UX_HOST_CLASS_COMMAND       command;
 
     /* We need to find the device descriptor for the removed device. We can find it
@@ -176,25 +179,25 @@ UX_HOST_CLASS_COMMAND       command;
         {
 
             /* We have the correct configuration, search the interface(s).  */
-            interface =  configuration -> ux_configuration_first_interface;
+            interface_ptr =  configuration -> ux_configuration_first_interface;
 
             /* Loop to perform the search.  */
-            while (interface != UX_NULL)
+            while (interface_ptr != UX_NULL)
             {
 
                 /* Check if an instance of the interface is present.  */
-                if (interface -> ux_interface_class_instance != UX_NULL)
+                if (interface_ptr -> ux_interface_class_instance != UX_NULL)
                 {
 
                     /* We need to stop the class instance for the device.  */
-                    command.ux_host_class_command_instance =  interface -> ux_interface_class_instance;
+                    command.ux_host_class_command_instance =  interface_ptr -> ux_interface_class_instance;
 
                     /* Call the class.  */
-                    interface -> ux_interface_class -> ux_host_class_entry_function(&command);
+                    interface_ptr -> ux_interface_class -> ux_host_class_entry_function(&command);
                 }
 
                 /* Move to next interface.  */
-                interface =  interface -> ux_interface_next_interface;
+                interface_ptr =  interface_ptr -> ux_interface_next_interface;
             }
         }
     }
