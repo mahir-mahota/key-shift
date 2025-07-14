@@ -41,7 +41,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/usbx/ports/generic/inc/
     ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/usbx/common/usbx_device_classes/inc/
     ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/usbx/common/usbx_stm32_device_controllers/
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBX/Target
+    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/Target
 )
 add_subdirectory(cmake/stm32cubemx)
 
@@ -53,20 +53,20 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
-    ${CMAKE_CURRENT_SOURCE_DIR}/THREADX/App/app_eclipse_rtos.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/App/app_eclipse_rtos.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/tx_initialize_low_level.s
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_threadx.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBX/App/ux_device_descriptors.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBX/App/ux_device_cdc_acm.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBX/App/ux_device_mouse.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBX/App/app_usbx_device.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App/ux_device_descriptors.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App/ux_device_cdc_acm.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App/ux_device_mouse.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App/app_usbx_device.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    ${CMAKE_CURRENT_SOURCE_DIR}/THREADX/App
-    ${CMAKE_CURRENT_SOURCE_DIR}/USBX/App
+    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/App
+    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App
 )
 
 # Add project symbols (macros)
