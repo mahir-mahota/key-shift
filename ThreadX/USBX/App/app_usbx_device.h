@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file    app_usbx_device.h
@@ -16,7 +15,6 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __APP_USBX_DEVICE_H__
 #define __APP_USBX_DEVICE_H__
@@ -27,42 +25,44 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "ux_api.h"
+#include "ux_device_descriptors.h"
+#include "ux_device_keyboard.h"
+#include "ux_device_cdc_acm.h"
+
+#include "usb_otg.h"
+#include "ux_dcd_stm32.h"
 
 /* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
-
-/* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
-/* USER CODE BEGIN EC */
+#define USBX_DEVICE_MEMORY_STACK_SIZE     16*1024
 
-/* USER CODE END EC */
-
+#define UX_DEVICE_APP_THREAD_STACK_SIZE   1024
+#define UX_DEVICE_APP_THREAD_PRIO         10
 /* Exported macro ------------------------------------------------------------*/
-/* USER CODE BEGIN EM */
-
-/* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
 UINT MX_USBX_Device_Init(VOID *memory_ptr);
-
-/* USER CODE BEGIN EFP */
-
-/* USER CODE END EFP */
+VOID USBX_APP_Device_Init(VOID);
 
 /* Private defines -----------------------------------------------------------*/
-/* USER CODE BEGIN PD */
+#ifndef UX_DEVICE_APP_THREAD_NAME
+#define UX_DEVICE_APP_THREAD_NAME  "USBX Device App Main Thread"
+#endif
 
-/* USER CODE END PD */
+#ifndef UX_DEVICE_APP_THREAD_PREEMPTION_THRESHOLD
+#define UX_DEVICE_APP_THREAD_PREEMPTION_THRESHOLD  UX_DEVICE_APP_THREAD_PRIO
+#endif
 
-/* USER CODE BEGIN 1 */
+#ifndef UX_DEVICE_APP_THREAD_TIME_SLICE
+#define UX_DEVICE_APP_THREAD_TIME_SLICE  TX_NO_TIME_SLICE
+#endif
 
-/* USER CODE END 1 */
+#ifndef UX_DEVICE_APP_THREAD_START_OPTION
+#define UX_DEVICE_APP_THREAD_START_OPTION  TX_AUTO_START
+#endif
 
 #ifdef __cplusplus
 }

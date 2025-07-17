@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file    ux_device_descriptors.c
@@ -16,30 +15,17 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
 #include "ux_device_descriptors.h"
 
 /* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 USBD_DevClassHandleTypeDef  USBD_Device_FS, USBD_Device_HS;
@@ -66,9 +52,6 @@ __ALIGN_BEGIN static uint8_t DevFrameWorkDesc_HS[USBD_FRAMEWORK_MAX_DESC_SZ] __A
 static uint8_t *pDevFrameWorkDesc_FS = DevFrameWorkDesc_FS;
 
 static uint8_t *pDevFrameWorkDesc_HS = DevFrameWorkDesc_HS;
-/* USER CODE BEGIN PV0 */
-
-/* USER CODE END PV0 */
 
 /* String Device Framework :
  Byte 0 and 1 : Word containing the language ID : 0x0904 for US
@@ -137,14 +120,7 @@ __ALIGN_END =
   0xB1, 0x01,        /*   Feature (Const,Array,Abs,NoWrp)      */
   0xC0               /* End Collection                         */
 };
-
-/* USER CODE BEGIN PV1 */
-
-/* USER CODE END PV1 */
 #endif /* USBD_HID_CLASS_ACTIVATED == 1U */
-/* USER CODE BEGIN PV2 */
-
-/* USER CODE END PV2 */
 
 /* Private function prototypes -----------------------------------------------*/
 static void USBD_Desc_GetString(uint8_t *desc, uint8_t *Buffer, uint16_t *len);
@@ -181,15 +157,7 @@ static void USBD_FrameWork_CDCDesc(USBD_DevClassHandleTypeDef *pdev,
                                    uint32_t pConf, uint32_t *Sze);
 #endif /* USBD_CDC_ACM_CLASS_ACTIVATED == 1U */
 
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
 /* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
-
 /**
   * @brief  USBD_Get_Device_Framework_Speed
   *         Return the device speed descriptor
@@ -200,9 +168,6 @@ static void USBD_FrameWork_CDCDesc(USBD_DevClassHandleTypeDef *pdev,
 uint8_t *USBD_Get_Device_Framework_Speed(uint8_t Speed, ULONG *Length)
 {
   uint8_t *pFrameWork = NULL;
-  /* USER CODE BEGIN Device_Framework0 */
-
-  /* USER TAG BEGIN Device_Framework0 */
 
   if (USBD_FULL_SPEED == Speed)
   {
@@ -224,9 +189,6 @@ uint8_t *USBD_Get_Device_Framework_Speed(uint8_t Speed, ULONG *Length)
 
     pFrameWork = pDevFrameWorkDesc_HS;
   }
-  /* USER CODE Device_Framework1 */
-
-  /* USER CODE Device_Framework1 */
   return pFrameWork;
 }
 
@@ -240,10 +202,6 @@ uint8_t *USBD_Get_String_Framework(ULONG *Length)
 {
   uint16_t len = 0U;
   uint8_t count = 0U;
-
-  /* USER CODE String_Framework0 */
-
-  /* USER CODE String_Framework0 */
 
   /* Set the Manufacturer language Id and index in USBD_string_framework */
   USBD_string_framework[count++] = USBD_LANGID_STRING & 0xFF;
@@ -270,10 +228,6 @@ uint8_t *USBD_Get_String_Framework(ULONG *Length)
 
   /* Set the Serial number in USBD_string_framework */
   USBD_Desc_GetString((uint8_t *)USBD_SERIAL_NUMBER, USBD_string_framework + count, &len);
-
-  /* USER CODE String_Framework1 */
-
-  /* USER CODE String_Framework1 */
 
   /* Get the length of USBD_string_framework */
   *Length = strlen((const char *)USBD_string_framework);
@@ -310,16 +264,7 @@ uint8_t *USBD_Get_Language_Id_Framework(ULONG *Length)
 uint8_t *USBD_Get_Device_HID_MOUSE_ReportDesc(void)
 {
   uint8_t *pHidReportDesc = NULL;
-
-  /* USER CODE HidReportDesc0 */
-
-  /* USER CODE HidReportDesc0 */
-
   pHidReportDesc = USBD_HID_MOUSE_ReportDesc;
-
-  /* USER CODE HidReportDesc1 */
-
-  /* USER CODE HidReportDesc1 */
   return pHidReportDesc;
 }
 #endif /* USBD_HID_CLASS_ACTIVATED == 1U */
@@ -616,15 +561,7 @@ uint8_t  USBD_FrameWork_AddToConfDesc(USBD_DevClassHandleTypeDef *pdev, uint8_t 
 
       break;
 #endif /* USBD_CDC_ACM_CLASS_ACTIVATED */
-
-    /* USER CODE FrameWork_AddToConfDesc_1 */
-
-    /* USER CODE FrameWork_AddToConfDesc_1 */
-
     default:
-      /* USER CODE FrameWork_AddToConfDesc_2 */
-
-      /* USER CODE FrameWork_AddToConfDesc_2 */
       break;
   }
 
@@ -866,6 +803,3 @@ static void USBD_FrameWork_CDCDesc(USBD_DevClassHandleTypeDef *pdev,
 }
 #endif /* USBD_CDC_ACM_CLASS_ACTIVATED == 1 */
 
-/* USER CODE BEGIN 1 */
-
-/* USER CODE END 1 */

@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file    ux_device_descriptors.h
@@ -16,7 +15,6 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __UX_DEVICE_DESCRIPTORS_H__
 #define __UX_DEVICE_DESCRIPTORS_H__
@@ -30,9 +28,6 @@ extern "C" {
 #include "ux_stm32_config.h"
 
 /* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
 
 /* Private defines -----------------------------------------------------------*/
 #define USBD_MAX_NUM_CONFIGURATION                     1U
@@ -47,10 +42,6 @@ extern "C" {
 #define USBD_COMPOSITE_USE_IAD                         1U
 #define USBD_DEVICE_FRAMEWORK_BUILDER_ENABLED          1U
 /* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
-
-/* USER CODE END ET */
-
 /* Enum Class Type */
 typedef enum
 {
@@ -208,9 +199,7 @@ typedef struct
   uint8_t           bHIDDescriptorType;
   uint16_t          wItemLength;
 } __PACKED USBD_HIDDescTypedef;
-/* USER CODE BEGIN HID_CLASS */
 
-/* USER CODE END HID_CLASS */
 #endif /* USBD_HID_CLASS_ACTIVATED == 1U */
 
 #if (USBD_CDC_ACM_CLASS_ACTIVATED == 1) || (USBD_CMPSIT_ACTIVATE_RNDIS == 1) || (USBD_CDC_ECM_CLASS_ACTIVATED == 1)
@@ -255,27 +244,16 @@ typedef struct
 #endif /* (USBD_CDC_ACM_CLASS_ACTIVATED == 1) || (USBD_CMPSIT_ACTIVATE_RNDIS == 1)  || (USBD_CDC_ECM_CLASS_ACTIVATED == 1)*/
 
 /* Private defines -----------------------------------------------------------*/
-/* USER CODE BEGIN Private_defines */
-
-/* USER CODE END Private_defines */
 
 /* Exported functions prototypes ---------------------------------------------*/
-/* USER CODE BEGIN EFP */
-
-/* USER CODE END EFP */
-
 uint8_t *USBD_Get_Device_Framework_Speed(uint8_t Speed, ULONG *Length);
 uint8_t *USBD_Get_String_Framework(ULONG *Length);
 uint8_t *USBD_Get_Language_Id_Framework(ULONG *Length);
 
 #if USBD_HID_CLASS_ACTIVATED == 1U
-uint8_t *USBD_Get_Device_HID_MOUSE_ReportDesc(void);
+uint8_t *USBD_Get_Device_HID_ReportDesc(void);
 #endif /* USBD_HID_CLASS_ACTIVATED == 1U */
 /* Private defines -----------------------------------------------------------*/
-/* USER CODE BEGIN Private_defines */
-
-/* USER CODE END Private_defines */
-
 #define USBD_VID                                       1155
 #define USBD_PID                                       22288
 #define USBD_LANGID_STRING                             1033
@@ -333,7 +311,7 @@ uint8_t *USBD_Get_Device_HID_MOUSE_ReportDesc(void);
 
 #define HID_DESCRIPTOR_TYPE                           0x21U
 #define USBD_HID_DESC_SIZE                            9U
-#define USBD_HID_MOUSE_REPORT_DESC_SIZE               74U
+#define USBD_HID_REPORT_DESC_SIZE                     74U
 
 /* This is the maximum supported configuration descriptor size
    User may redefine this value in order to optima */
@@ -350,9 +328,6 @@ uint8_t *USBD_Get_Device_HID_MOUSE_ReportDesc(void);
 #endif /* USBD_CONFIG_BMATTRIBUTES */
 
 /* Private macro -----------------------------------------------------------*/
-/* USER CODE BEGIN Private_macro */
-
-/* USER CODE END Private_macro */
 #define __USBD_FRAMEWORK_SET_EP(epadd, eptype, epsize, HSinterval, FSinterval) do { \
                                 /* Append Endpoint descriptor to Configuration descriptor */ \
                                 pEpDesc = ((USBD_EpDescTypedef*)((uint32_t)pConf + *Sze)); \
