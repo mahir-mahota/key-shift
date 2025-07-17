@@ -31,13 +31,12 @@ extern "C" {
 
 #include "usb_otg.h"
 #include "ux_dcd_stm32.h"
-
 /* Private includes ----------------------------------------------------------*/
 
 /* Exported types ------------------------------------------------------------*/
 
 /* Exported constants --------------------------------------------------------*/
-#define USBX_DEVICE_MEMORY_STACK_SIZE     16*1024
+#define USBX_DEVICE_MEMORY_STACK_SIZE     14*1024
 
 #define UX_DEVICE_APP_THREAD_STACK_SIZE   1024
 #define UX_DEVICE_APP_THREAD_PRIO         10

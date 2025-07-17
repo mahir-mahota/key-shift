@@ -58,7 +58,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_threadx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App/ux_device_descriptors.c
     ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App/ux_device_cdc_acm.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App/ux_device_mouse.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App/ux_device_keyboard.c
     ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App/app_usbx_device.c
 )
 
@@ -374,6 +374,9 @@ set(USBX_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/usbx/common/core/src/ux_device_stack_transfer_all_request_abort.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/usbx/common/core/src/ux_device_stack_transfer_request.c
     ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/usbx/common/core/src/ux_device_stack_uninitialize.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/usbx/common/core/src/ux_utility_memory_byte_pool_search.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/usbx/common/core/src/ux_utility_memory_byte_pool_create.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Middleware/usbx/common/core/src/ux_host_stack_initialize.c
 )
 
 # Create USBX static library

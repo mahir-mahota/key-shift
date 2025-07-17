@@ -26,6 +26,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "ux_api.h"
 #include "ux_stm32_config.h"
+#include "ux_device_class_hid.h"
 
 /* Private includes ----------------------------------------------------------*/
 
@@ -67,33 +68,33 @@ typedef struct
 /* USB endpoint handle structure */
 typedef struct
 {
-  uint8_t                     add;
-  uint8_t                     type;
-  uint16_t                    size;
-  uint8_t                     is_used;
+  uint8_t  add;
+  uint8_t  type;
+  uint16_t size;
+  uint8_t  is_used;
 } USBD_EPTypeDef;
 
 /* USB Composite handle structure */
 typedef struct
 {
-  USBD_CompositeClassTypeDef   ClassType;
-  uint32_t                     ClassId;
-  uint32_t                     Active;
-  uint32_t                     NumEps;
-  USBD_EPTypeDef               Eps[USBD_MAX_CLASS_ENDPOINTS];
-  uint32_t                     NumIf;
-  uint8_t                      Ifs[USBD_MAX_CLASS_INTERFACES];
+  USBD_CompositeClassTypeDef    ClassType;
+  uint32_t                      ClassId;
+  uint32_t                      Active;
+  uint32_t                      NumEps;
+  USBD_EPTypeDef                Eps[USBD_MAX_CLASS_ENDPOINTS];
+  uint32_t                      NumIf;
+  uint8_t                       Ifs[USBD_MAX_CLASS_INTERFACES];
 } USBD_CompositeElementTypeDef;
 
 /* USB Device handle structure */
 typedef struct _USBD_DevClassHandleTypeDef
 {
-  uint8_t                 Speed;
-  uint32_t                classId;
-  uint32_t                NumClasses;
-  USBD_CompositeElementTypeDef tclasslist[USBD_MAX_SUPPORTED_CLASS];
-  uint32_t                CurrDevDescSz;
-  uint32_t                CurrConfDescSz;
+  uint8_t                       Speed;
+  uint32_t                      classId;
+  uint32_t                      NumClasses;
+  USBD_CompositeElementTypeDef  tclasslist[USBD_MAX_SUPPORTED_CLASS];
+  uint32_t                      CurrDevDescSz;
+  uint32_t                      CurrConfDescSz;
 } USBD_DevClassHandleTypeDef;
 
 /* USB Device endpoint direction */
@@ -252,6 +253,8 @@ uint8_t *USBD_Get_Language_Id_Framework(ULONG *Length);
 
 #if USBD_HID_CLASS_ACTIVATED == 1U
 uint8_t *USBD_Get_Device_HID_ReportDesc(void);
+uint16_t *USBD_HID_ReportDesc_length(void);
+uint16_t USBD_Get_Interface_Number(uint8_t class_type);
 #endif /* USBD_HID_CLASS_ACTIVATED == 1U */
 /* Private defines -----------------------------------------------------------*/
 #define USBD_VID                                       1155

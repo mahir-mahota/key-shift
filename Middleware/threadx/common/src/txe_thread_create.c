@@ -117,15 +117,15 @@ TX_THREAD       *current_thread;
         status =  TX_THREAD_ERROR;
     }
 
-    /* Now check for invalid thread control block size.  */
-    else if (thread_control_block_size != (sizeof(TX_THREAD)))
-    {
+    // /* Now check for invalid thread control block size.  */
+    // else if (thread_control_block_size != (sizeof(TX_THREAD)))
+    // {
 
-        /* Thread pointer is invalid, return appropriate error code.  */
-        status =  TX_THREAD_ERROR;
-    }
-    else
-    {
+    //     /* Thread pointer is invalid, return appropriate error code.  */
+    //     status =  TX_THREAD_ERROR;
+    // }
+    // else
+    // {
 
         /* Disable interrupts.  */
         TX_DISABLE
@@ -294,7 +294,7 @@ TX_THREAD       *current_thread;
                 }
             }
         }
-    }
+    // }
 
     /* Determine if everything is okay.  */
     if (status == TX_SUCCESS)

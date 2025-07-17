@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file    ux_device_keyboard.c
@@ -16,48 +15,28 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
 #include "ux_device_keyboard.h"
 
 /* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-/* USER CODE BEGIN PV */
 UX_SLAVE_CLASS_HID *hid_keyboard;
 
 __IO uint8_t User_Button_State = 0U;
 static UCHAR key_button = 0U;
-/* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
 static VOID GetKeyData(UX_SLAVE_CLASS_HID_EVENT *hid_event);
-/* USER CODE END 0 */
 
 /**
   * @brief  USBD_HID_Keyboard_Activate
@@ -138,8 +117,6 @@ UINT USBD_HID_Keyboard_GetReport(UX_SLAVE_CLASS_HID *hid_instance,
   return status;
 }
 
-/* USER CODE BEGIN 1 */
-
 /**
   * @brief  Function implementing usbx_hid_keyboard_thread_entry.
   * @param  thread_input: not used
@@ -166,27 +143,20 @@ VOID usbx_hid_keyboard_thread_entry(ULONG thread_input)
       /* Sleep Thread for 20ms */
       tx_thread_sleep(MS_TO_TICK(20));
 
-      /* Check if user button is pressed */
-      if (User_Button_State)
-      {
-        /* Get the key button */
-        GetKeyData(&hid_event);
+      /* Get the key button */
+      GetKeyData(&hid_event);
 
-        /* Send keyboard event */
-        ux_device_class_hid_event_set(hid_keyboard, &hid_event);
+      /* Send keyboard event */
+      ux_device_class_hid_event_set(hid_keyboard, &hid_event);
 
-        /* Next event has the key button depressed */
-        hid_event.ux_device_class_hid_event_buffer[2] = 0;
+      /* Next event has the key button depressed */
+      hid_event.ux_device_class_hid_event_buffer[2] = 0;
 
-        /* Set hid envent length to 8 */
-        hid_event.ux_device_class_hid_event_length = 8;
+      /* Set hid envent length to 8 */
+      hid_event.ux_device_class_hid_event_length = 8;
 
-        /* Send keyboard event */
-        ux_device_class_hid_event_set(hid_keyboard, &hid_event);
-
-        /* Reset User Button state */
-        User_Button_State = 0;
-      }
+      /* Send keyboard event */
+      ux_device_class_hid_event_set(hid_keyboard, &hid_event);
     }
     else
     {
@@ -224,5 +194,3 @@ static VOID GetKeyData(UX_SLAVE_CLASS_HID_EVENT *hid_event)
   /* Increment counter */
   key_button++;
 }
-
-/* USER CODE END 1 */
