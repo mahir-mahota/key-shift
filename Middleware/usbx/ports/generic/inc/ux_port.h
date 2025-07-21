@@ -211,7 +211,7 @@ typedef LONG                        SLONG;
 
 
 #ifndef UX_SLAVE_REQUEST_DATA_MAX_LENGTH
-#define UX_SLAVE_REQUEST_DATA_MAX_LENGTH                    2048
+#define UX_SLAVE_REQUEST_DATA_MAX_LENGTH                    512
 #endif
 
 #ifndef UX_USE_IO_INSTRUCTIONS
