@@ -29,8 +29,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 UX_SLAVE_CLASS_HID *hid_keyboard;
-
-__IO uint8_t User_Button_State = 0U;
 static UCHAR key_button = 0U;
 
 /* Private function prototypes -----------------------------------------------*/
