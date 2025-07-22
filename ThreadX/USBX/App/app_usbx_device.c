@@ -38,7 +38,6 @@ TX_THREAD ux_hid_keyboard_thread;
 /* Private function prototypes -----------------------------------------------*/
 static VOID app_ux_device_thread_entry(ULONG thread_input);
 
-
 /**
   * @brief Application USBX Device Initialization.
   * @param memory_ptr: memory pointer
@@ -58,6 +57,7 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   UCHAR *pointer;
   TX_BYTE_POOL *byte_pool = (TX_BYTE_POOL*)memory_ptr;
 
+  /* Allocate the stack for USBX Memory */
   if (tx_byte_allocate(byte_pool, (VOID **) &pointer,
                        USBX_DEVICE_MEMORY_STACK_SIZE, TX_NO_WAIT) != TX_SUCCESS)
   {
@@ -101,17 +101,17 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   /* Initialize the hid keyboard class parameters for the device */
   hid_keyboard_parameter.ux_slave_class_hid_instance_activate         = USBD_HID_Keyboard_Activate;
   hid_keyboard_parameter.ux_slave_class_hid_instance_deactivate       = USBD_HID_Keyboard_Deactivate;
-  hid_keyboard_parameter.ux_device_class_hid_parameter_report_address = USBD_Get_Device_HID_ReportDesc();
-  hid_keyboard_parameter.ux_device_class_hid_parameter_report_length  = (ULONG)USBD_HID_ReportDesc_length();
+  hid_keyboard_parameter.ux_device_class_hid_parameter_report_address = USBD_HID_ReportDesc(INTERFACE_HID_KEYBOARD);
+  hid_keyboard_parameter.ux_device_class_hid_parameter_report_length  = USBD_HID_ReportDesc_length(INTERFACE_HID_KEYBOARD);
   hid_keyboard_parameter.ux_device_class_hid_parameter_report_id      = UX_FALSE;
   hid_keyboard_parameter.ux_device_class_hid_parameter_callback       = USBD_HID_Keyboard_SetReport;
   hid_keyboard_parameter.ux_device_class_hid_parameter_get_callback   = USBD_HID_Keyboard_GetReport;
 
   /* Get hid keyboard configuration number */
-  hid_keyboard_configuration_number = 1;
+  hid_keyboard_configuration_number = USBD_Get_Configuration_Number(CLASS_TYPE_HID, INTERFACE_HID_KEYBOARD);
 
   /* Find hid keyboard interface number */
-  hid_keyboard_interface_number = USBD_Get_Interface_Number(CLASS_TYPE_HID);
+  hid_keyboard_interface_number = USBD_Get_Interface_Number(CLASS_TYPE_HID, INTERFACE_HID_KEYBOARD);
 
   /* Initialize the device hid keyboard class */
   if (ux_device_stack_class_register(_ux_system_slave_class_hid_name,
@@ -119,7 +119,7 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
                                      hid_keyboard_configuration_number,
                                      hid_keyboard_interface_number,
                                      &hid_keyboard_parameter) != UX_SUCCESS)
-  {
+  { 
     return UX_ERROR;
   }
 
@@ -139,7 +139,7 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
     return TX_THREAD_ERROR;
   }
 
-    /* Allocate the stack for usbx hid keyboard thread */
+  /* Allocate the stack for usbx hid keyboard thread */
   if (tx_byte_allocate(byte_pool, (VOID **) &pointer, 1024, TX_NO_WAIT) != UX_SUCCESS)
   {
     return TX_POOL_ERROR;
