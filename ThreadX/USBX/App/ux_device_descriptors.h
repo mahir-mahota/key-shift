@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file    ux_device_descriptors.h
@@ -16,7 +15,7 @@
   *
   ******************************************************************************
   */
-/* USER CODE END Header */
+ 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __UX_DEVICE_DESCRIPTORS_H__
 #define __UX_DEVICE_DESCRIPTORS_H__
@@ -31,9 +30,6 @@ extern "C" {
 #include "ux_device_class_hid.h"
 
 /* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
 
 /* Private defines -----------------------------------------------------------*/
 #define USBD_MAX_NUM_CONFIGURATION                     1U
@@ -43,7 +39,6 @@ extern "C" {
 
 #define USBD_HID_CLASS_ACTIVATED                       1U
 
-#define USBD_HID_MOUSE_ACTIVATED                       1U
 #define USBD_HID_KEYBOARD_ACTIVATED                    1U
 
 #define USBD_CONFIG_MAXPOWER                           25U
@@ -52,9 +47,6 @@ extern "C" {
 
 #define USBD_FRAMEWORK_MAX_DESC_SZ                     200U
 /* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
-
-/* USER CODE END ET */
 
 /* Enum Class Type */
 typedef enum
@@ -77,7 +69,6 @@ typedef enum
 {
   INTERFACE_HID_CUSTOM     = 0,
   INTERFACE_HID_KEYBOARD   = 1,
-  INTERFACE_HID_MOUSE      = 2,
 } USBD_HIDInterfaceTypeDef;
 
 /* USB Endpoint handle structure */
@@ -230,15 +221,8 @@ typedef struct
 #endif /* USBD_HID_CLASS_ACTIVATED == 1U */
 
 /* Private defines -----------------------------------------------------------*/
-/* USER CODE BEGIN Private_defines */
-
-/* USER CODE END Private_defines */
 
 /* Exported functions prototypes ---------------------------------------------*/
-/* USER CODE BEGIN EFP */
-
-/* USER CODE END EFP */
-
 uint8_t *USBD_Get_Device_Framework_Speed(uint8_t Speed, ULONG *Length);
 uint8_t *USBD_Get_String_Framework(ULONG *Length);
 uint8_t *USBD_Get_Language_Id_Framework(ULONG *Length);
@@ -250,10 +234,6 @@ uint8_t *USBD_HID_ReportDesc(uint8_t hid_type);
 uint16_t USBD_HID_ReportDesc_length(uint8_t hid_type);
 #endif /* USBD_HID_CLASS_ACTIVATED == 1U */
 /* Private defines -----------------------------------------------------------*/
-/* USER CODE BEGIN Private_defines */
-
-/* USER CODE END Private_defines */
-
 #define USBD_VID                                      0x483
 #define USBD_PID                                      0x5750
 #define USBD_LANGID_STRING                            1033
@@ -286,13 +266,6 @@ uint16_t USBD_HID_ReportDesc_length(uint8_t hid_type);
 
 #define USBD_STRING_FRAMEWORK_MAX_LENGTH              256U
 
-/* Device HID Mouse */
-#define USBD_HID_MOUSE_EPIN_ADDR                      0x81U
-#define USBD_HID_MOUSE_EPIN_FS_MPS                    4U
-#define USBD_HID_MOUSE_EPIN_HS_MPS                    4U
-#define USBD_HID_MOUSE_EPIN_FS_BINTERVAL              5U
-#define USBD_HID_MOUSE_EPIN_HS_BINTERVAL              5U
-
 /* Device HID Keyboard */
 #define USBD_HID_KEYBOARD_EPIN_ADDR                   0x82U
 #define USBD_HID_KEYBOARD_EPIN_FS_MPS                 4U
@@ -309,9 +282,6 @@ uint16_t USBD_HID_ReportDesc_length(uint8_t hid_type);
 #endif /* USBD_CONFIG_BMATTRIBUTES */
 
 /* Private macro -----------------------------------------------------------*/
-/* USER CODE BEGIN Private_macro */
-
-/* USER CODE END Private_macro */
 #define __USBD_FRAMEWORK_SET_EP(epadd, eptype, epsize, HSinterval, FSinterval) do { \
                                 /* Append Endpoint descriptor to Configuration descriptor */ \
                                 pEpDesc = ((USBD_EpDescTypedef*)((uint32_t)pConf + *Sze)); \
