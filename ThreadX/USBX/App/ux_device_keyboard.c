@@ -30,6 +30,7 @@
 /* Private variables ---------------------------------------------------------*/
 UX_SLAVE_CLASS_HID *hid_keyboard;
 static UCHAR key_button = 0U;
+static int finished = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -187,8 +188,15 @@ static VOID GetKeyData(UX_SLAVE_CLASS_HID_EVENT *hid_event)
   hid_event->ux_device_class_hid_event_buffer[1] = 0;
 
   /* Update key button byte */
-  hid_event->ux_device_class_hid_event_buffer[2] = key_button;
-
+  if (!finished) {
+    hid_event->ux_device_class_hid_event_buffer[2] = key_button;
+  } else {
+    hid_event->ux_device_class_hid_event_buffer[2] = 0;
+  }
+  
   /* Increment counter */
   key_button++;
+  if (key_button == 30) {
+    finished = 1;
+  }
 }
