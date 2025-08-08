@@ -57,7 +57,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/tx_initialize_low_level.s
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/app_threadx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App/ux_device_descriptors.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App/ux_device_cdc_acm.c
     ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App/ux_device_keyboard.c
     ${CMAKE_CURRENT_SOURCE_DIR}/ThreadX/USBX/App/app_usbx_device.c
 )

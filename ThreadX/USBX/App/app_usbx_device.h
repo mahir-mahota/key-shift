@@ -27,7 +27,6 @@ extern "C" {
 #include "ux_api.h"
 #include "ux_device_descriptors.h"
 #include "ux_device_keyboard.h"
-#include "ux_device_cdc_acm.h"
 
 #include "usb_otg.h"
 #include "ux_dcd_stm32.h"
