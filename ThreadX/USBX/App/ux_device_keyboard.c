@@ -178,20 +178,23 @@ static VOID GetKeyData(UX_SLAVE_CLASS_HID_EVENT *hid_event)
     key_button = 0x04;
   }
 
-  /* Set hid envent length to 8 */
+  /* Set hid event length to 8 */
   hid_event->ux_device_class_hid_event_length = 8;
 
-  /* This byte is a modifier byte */
-  hid_event->ux_device_class_hid_event_buffer[0] = 0;
+  /* This byte is the report id */
+  hid_event->ux_device_class_hid_event_buffer[0] = 0x1;
+
+  /* This byte is the modifier byte */
+  hid_event->ux_device_class_hid_event_buffer[1] = 0;
 
   /* This byte is reserved */
-  hid_event->ux_device_class_hid_event_buffer[1] = 0;
+  hid_event->ux_device_class_hid_event_buffer[2] = 0;
 
   /* Update key button byte */
   if (!finished) {
-    hid_event->ux_device_class_hid_event_buffer[2] = key_button;
+    hid_event->ux_device_class_hid_event_buffer[3] = key_button;
   } else {
-    hid_event->ux_device_class_hid_event_buffer[2] = 0;
+    hid_event->ux_device_class_hid_event_buffer[3] = 0;
   }
   
   /* Increment counter */
