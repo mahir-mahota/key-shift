@@ -43,6 +43,8 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
 
   (void)byte_pool;
 
+  // ...
+
   return ret;
 }
 
