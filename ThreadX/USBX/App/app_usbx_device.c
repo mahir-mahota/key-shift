@@ -33,7 +33,7 @@ static ULONG hid_keyboard_configuration_number;
 static UX_SLAVE_CLASS_HID_PARAMETER hid_keyboard_parameter;
 static TX_THREAD ux_device_app_thread;
 
-TX_THREAD ux_hid_keyboard_thread;
+static TX_THREAD ux_hid_keyboard_thread;
 
 /* Private function prototypes -----------------------------------------------*/
 static VOID app_ux_device_thread_entry(ULONG thread_input);
