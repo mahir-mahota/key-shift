@@ -43,10 +43,7 @@ VOID kp_matrix_thread_entry(ULONG thread_input);
 UINT App_ThreadX_Init(VOID *memory_ptr)
 {
   UINT ret = TX_SUCCESS;
-  TX_BYTE_POOL *byte_pool = (TX_BYTE_POOL*)memory_ptr;
-  CHAR *pointer = TX_NULL;
-  (void)byte_pool;
-  (void)pointer;
+  (void)memory_ptr;
 
   tx_thread_create(&kp_matrix_thread, "kp_matrix_thread", kp_matrix_thread_entry, 0, 
                    kp_matrix_thread_stack, TX_THREAD_STACK_SIZE, 15, 15, TX_NO_TIME_SLICE, TX_AUTO_START);

@@ -46,20 +46,11 @@ static TX_BYTE_POOL ux_device_app_byte_pool;
   */
 VOID tx_application_define(VOID *first_unused_memory)
 {
-  VOID *memory_ptr;
+  VOID *memory_ptr = (VOID *)&tx_app_byte_pool;
 
-  if (tx_byte_pool_create(&tx_app_byte_pool, "Tx App memory pool", tx_byte_pool_buffer, TX_APP_MEM_POOL_SIZE) != TX_SUCCESS)
+  if (App_ThreadX_Init(memory_ptr) != TX_SUCCESS)
   {
     Error_Handler();
-  }
-  else
-  {
-    memory_ptr = (VOID *)&tx_app_byte_pool;
-
-    if (App_ThreadX_Init(memory_ptr) != TX_SUCCESS)
-    {
-      Error_Handler();
-    }
   }
 
   if (tx_byte_pool_create(&ux_device_app_byte_pool, "Ux App memory pool", ux_device_byte_pool_buffer, UX_DEVICE_APP_MEM_POOL_SIZE) != TX_SUCCESS)
