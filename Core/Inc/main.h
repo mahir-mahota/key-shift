@@ -31,7 +31,8 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#define NUM_ROWS 4
+#define NUM_COLUMNS 4
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -77,7 +78,7 @@ void Error_Handler(void);
 #define COLUMN4_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
-
+void process_key(int row, int column);
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
