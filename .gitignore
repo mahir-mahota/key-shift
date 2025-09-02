@@ -7,3 +7,7 @@ build.ninja
 cmake_install.cmake
 compile_commands.json
 .mxproject
+
+fp-info-cache
+key-shift-pcb-backups/
+key-shift-pcb.kicad_prl
