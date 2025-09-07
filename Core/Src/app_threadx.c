@@ -66,9 +66,9 @@ VOID kp_matrix_thread_entry(ULONG thread_input) {
   int columns[NUM_COLUMNS] = {COLUMN1_Pin, COLUMN2_Pin, COLUMN3_Pin, COLUMN4_Pin};
 
   while (1) {
+    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
     for (int r = 0; r < NUM_ROWS; r++) {
       HAL_GPIO_WritePin(GPIOA, rows[r], GPIO_PIN_RESET);
-      tx_thread_sleep(5);
 
       for (int c = 0; c < NUM_COLUMNS; c++) {
         if (HAL_GPIO_ReadPin(GPIOA, columns[c]) == GPIO_PIN_RESET) {
@@ -78,6 +78,6 @@ VOID kp_matrix_thread_entry(ULONG thread_input) {
       
       HAL_GPIO_WritePin(GPIOA, rows[r], GPIO_PIN_SET);
     }
-    tx_thread_sleep(10);
+    tx_thread_sleep(1);
   }
 }

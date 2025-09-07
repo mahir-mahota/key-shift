@@ -68,7 +68,7 @@ void Error_Handler(void);
 #define ROW3_GPIO_Port GPIOA
 #define ROW4_Pin GPIO_PIN_3
 #define ROW4_GPIO_Port GPIOA
-#define COLUMN1_Pin GPIO_PIN_4
+#define COLUMN1_Pin GPIO_PIN_4  
 #define COLUMN1_GPIO_Port GPIOA
 #define COLUMN2_Pin GPIO_PIN_5
 #define COLUMN2_GPIO_Port GPIOA
